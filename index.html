@@ -293,6 +293,9 @@ footer{margin-top:3.5rem;padding:2rem 1rem;line-height:1.7}
 @media(prefers-reduced-motion:reduce){.op,.card,.chip,.btn{transition:none}.op:hover,.card:hover,.chip:hover,.btn:hover{transform:none}}
 
 
+/* Corrección despliegue details: evitar display:flex en el elemento nativo details */
+.card{display:block}
+
 /* Fichas desplegables y espacios publicitarios verticales */
 .sp.libre{
  min-height:320px;
