@@ -101,6 +101,7 @@ Si escribes un correo o un enlace de WhatsApp en `"contacto"`, los espacios libr
 
 **Notas**
 - Cada tarjeta lleva la etiqueta "Destacado · Publicidad", porque la publicidad tiene que poder identificarse como tal. Los enlaces llevan la marca `sponsored`, la recomendada para enlaces de pago.
+- El logo "ON" indica promoción especial. Si el anunciante tiene una oferta, escríbela en el campo opcional `"promo"` (con sus condiciones y hasta cuándo vale) y saldrá destacada en la tarjeta. Si el logo promete una promoción, conviene que cada anuncio diga en qué consiste. Confírmalo con tu gestor.
 - Cada lado muestra como máximo dos negocios a la vez.
 - La fecha se comprueba con el reloj de quien visita la web.
 - El cobro, la factura y el IVA los gestionas aparte. Consúltalo con tu gestor.
