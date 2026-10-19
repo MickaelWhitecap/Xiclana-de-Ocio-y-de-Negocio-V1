@@ -1,0 +1,15 @@
+{
+ "_ayuda": "Cada negocio que paga un mes se añade como un bloque dentro de 'espacios'. Fuera de las fechas desde/hasta deja de verse solo. 'lado' puede ser izquierda o derecha. 'contacto' (correo, o enlace de WhatsApp) añade el enlace 'Reservar este espacio' al cartel que se ve en los espacios libres.",
+ "_ejemplo": {
+  "n": "Nombre del negocio",
+  "c": "Restaurante",
+  "lema": "Una frase corta",
+  "p": "956 000 000",
+  "w": "https://www.ejemplo.es",
+  "lado": "izquierda",
+  "desde": "2026-11-01",
+  "hasta": "2026-11-30"
+ },
+ "contacto": "",
+ "espacios": []
+}
