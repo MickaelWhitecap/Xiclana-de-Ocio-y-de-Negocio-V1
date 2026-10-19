@@ -79,6 +79,13 @@ footer{background:var(--nav);color:#c9d8e6;font-size:.88rem;padding:1.6rem 1rem;
 .cuerpo{display:grid;grid-template-columns:minmax(180px,1fr) minmax(0,1050px) minmax(180px,1fr);gap:0 1.2rem;align-items:start}
 .lado{display:flex;flex-direction:column;gap:.9rem;position:sticky;top:1rem;margin-top:1.7rem;width:clamp(180px,calc((100vw - 1050px)/2 - 2.4rem),300px)}
 #lado-i{justify-self:end}#lado-d{justify-self:start}.strip{display:none}.sp{min-width:0}}
+
+/* Ajuste: dar protagonismo a la fotografía del castillo */
+.hero.foto{background-blend-mode:normal}
+.hero.foto:before{
+ background:linear-gradient(90deg,rgba(9,31,46,.12),rgba(9,31,46,0) 85%),linear-gradient(0deg,rgba(9,31,46,.08),transparent 65%);
+}
+
 </style>
 <style id="refresh-visual-v1">
 :root{
