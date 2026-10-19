@@ -292,6 +292,43 @@ footer{margin-top:3.5rem;padding:2rem 1rem;line-height:1.7}
 }
 @media(prefers-reduced-motion:reduce){.op,.card,.chip,.btn{transition:none}.op:hover,.card:hover,.chip:hover,.btn:hover{transform:none}}
 
+
+/* Fichas desplegables y espacios publicitarios verticales */
+.sp.libre{
+ min-height:320px;
+ padding:1.1rem;
+ justify-content:flex-start;
+ gap:.65rem;
+}
+.sp.libre .sp-top{align-items:flex-start}
+.card{margin:0;cursor:pointer;overflow:hidden}
+.card>summary.card-summary{
+ display:flex;
+ flex-direction:column;
+ gap:.3rem;
+ list-style:none;
+ cursor:pointer;
+ padding:.1rem 0 .25rem;
+}
+.card>summary.card-summary::-webkit-details-marker{display:none}
+.card-summary h3{margin:0}
+.card-summary:after{
+ content:"Ver ficha completa ＋";
+ align-self:flex-start;
+ margin-top:.25rem;
+ color:var(--acc);
+ font-size:.82rem;
+ font-weight:700;
+}
+.card[open]>.card-summary{
+ padding-bottom:.65rem;
+ margin-bottom:.25rem;
+ border-bottom:1px solid var(--bd);
+}
+.card[open]>.card-summary:after{content:"Ocultar detalles −"}
+.card-details{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.card-details .acts{margin-top:.3rem}
+@media(max-width:650px){.sp.libre{min-height:300px}}
 </style>
 
 </head><body>
@@ -354,12 +391,12 @@ function render(){
  all.forEach((x,i)=>{
   if(t&&x.t!==t||cat&&x.c!==cat)return;
   if(q&&![x.n,x.c,x.a,x.d].join(" ").toLowerCase().includes(q))return;
-  n++;if(n>LIM)return;const c=el("div","card");const tp=el("div","top");tp.append(el("span","ic",ico(x)),el("span","tag",x.c));c.append(tp,el("h3","",x.n));
-  if(x.a)c.append(el("p","","📍 "+x.a));{let p=el("p","");p.append("📞 ");if(x.p){const t=x.p.split(/[;,\/]|ext/i)[0].replace(/[^\d+]/g,""),a=el("a","",x.p);a.href="tel:"+(/^\d{9}$/.test(t)?"+34"+t:t);p.append(a)}else if(!/playa|parque|natur|patrimonio|mirador|plaza|atracc/i.test(x.c)){p.append("sin teléfono registrado");p.className="mut"}else p=null;if(p)c.append(p)}if(x.e){const q=el("p","");q.append("✉️ ");const a=el("a","",x.e);a.href="mailto:"+x.e;q.append(a);c.append(q)}if(x.s)c.append(el("p","s","⭐ "+x.s));if(x.h)c.append(el("p","","🕒 "+x.h));if(x.d)c.append(el("p","",x.d));
-  if(x.f)c.append(el("p","f","Fuente: "+x.f));const a=el("div","acts"),m=el("a","","Ver en Google Maps");m.href=x.m&&/^https?:\/\//.test(x.m)?x.m:map(x.n+(x.c&&!x.n.toLowerCase().includes(x.c.toLowerCase())?" "+x.c:""));m.target="_blank";m.rel="noopener";a.append(m);if(x.lat){const dd=el("a","","Cómo llegar");dd.href="https://www.google.com/maps/dir/?api=1&destination="+x.lat+","+x.lon;dd.target="_blank";dd.rel="noopener";a.append(dd)}
+  n++;if(n>LIM)return;const c=el("details","card");const sum=el("summary","card-summary");const tp=el("div","top");tp.append(el("span","ic",ico(x)),el("span","tag",x.c));sum.append(tp,el("h3","",x.n));info.append(sum);const info=el("div","card-details");
+  if(x.a)info.append(el("p","","📍 "+x.a));{let p=el("p","");p.append("📞 ");if(x.p){const t=x.p.split(/[;,\/]|ext/i)[0].replace(/[^\d+]/g,""),a=el("a","",x.p);a.href="tel:"+(/^\d{9}$/.test(t)?"+34"+t:t);p.append(a)}else if(!/playa|parque|natur|patrimonio|mirador|plaza|atracc/i.test(x.c)){p.append("sin teléfono registrado");p.className="mut"}else p=null;if(p)info.append(p)}if(x.e){const q=el("p","");q.append("✉️ ");const a=el("a","",x.e);a.href="mailto:"+x.e;q.append(a);info.append(q)}if(x.s)info.append(el("p","s","⭐ "+x.s));if(x.h)info.append(el("p","","🕒 "+x.h));if(x.d)info.append(el("p","",x.d));
+  if(x.f)info.append(el("p","f","Fuente: "+x.f));const a=el("div","acts"),m=el("a","","Ver en Google Maps");m.href=x.m&&/^https?:\/\//.test(x.m)?x.m:map(x.n+(x.c&&!x.n.toLowerCase().includes(x.c.toLowerCase())?" "+x.c:""));m.target="_blank";m.rel="noopener";a.append(m);if(x.lat){const dd=el("a","","Cómo llegar");dd.href="https://www.google.com/maps/dir/?api=1&destination="+x.lat+","+x.lon;dd.target="_blank";dd.rel="noopener";a.append(dd)}
   if(x.w&&/^https?:\/\//.test(x.w)){const w=el("a","","Web");w.href=x.w;w.target="_blank";w.rel="noopener";a.append(w)}
   if(!x.seed){const d=el("button","lnk","Eliminar");d.onclick=()=>{mine.splice(i-SEED.length,1);save();render()};a.append(d)}
-  c.append(a);g.append(c)});
+  info.append(a);c.append(info);g.append(c)});
  if(n>LIM){const b=el("button","btn s","Mostrar más ("+(n-LIM)+" restantes)");b.style.gridColumn="1/-1";b.onclick=()=>{LIM+=120;render()};g.append(b)}
  $("#empty").hidden=n>0}
 $("#q").oninput=()=>{LIM=120;render()};
