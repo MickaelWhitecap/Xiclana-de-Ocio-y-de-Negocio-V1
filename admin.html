@@ -87,7 +87,7 @@ function refreshList(){
  list.textContent="";$("#count").textContent=matches.length+" fichas";
  matches.forEach(x=>{const b=document.createElement("button");b.type="button";b.className="item"+(x.id===selectedId?" active":"");b.append(document.createTextNode(x.n||"Sin nombre"));const small=document.createElement("small");small.textContent=(x.c||"Sin categoría")+" · "+(x.a||"Sin dirección");b.append(small);if(x.verified_at){const p=document.createElement("span");p.className="pill";p.textContent="Verificada";b.append(p)}b.onclick=()=>selectItem(x.id);list.append(b)});
 }
-function selectItem(id){const x=effectiveItems().find(v=>v.id===id);if(!x)return;selectedId=id;isNew=false;$("#form-title").textContent=x.n;$("#record-meta").textContent=x.verified_at?"Última verificación: "+new Date(x.verified_at).toLocaleString("es-ES"):"Ficha de directorio";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");fieldNames.forEach(k=>{const input=form.elements[k];input.value=x[k]??""});refreshList()}
+function selectItem(id){const x=effectiveItems().find(v=>v.id===id);if(!x)return;selectedId=id;isNew=!!x.is_new;$("#form-title").textContent=x.n;$("#record-meta").textContent=x.verified_at?"Última verificación: "+new Date(x.verified_at).toLocaleString("es-ES"):"Ficha de directorio";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");fieldNames.forEach(k=>{const input=form.elements[k];input.value=x[k]??""});refreshList()}
 function startNew(){selectedId="new:"+crypto.randomUUID();isNew=true;$("#form-title").textContent="Nueva ficha";$("#record-meta").textContent="Se añadirá al directorio público";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");form.reset();$("#t").value="negocio";refreshList()}
 function cancelEdit(){selectedId=null;isNew=false;form.classList.add("hidden");$("#empty-editor").classList.remove("hidden");$("#form-title").textContent="Selecciona una ficha";$("#record-meta").textContent="";refreshList()}
 async function loadData(){
@@ -102,9 +102,9 @@ form.addEventListener("submit",async e=>{
  try{
   const fields={};fieldNames.forEach(k=>{const raw=form.elements[k].value;fields[k]=["lat","lon"].includes(k)?(raw===""?null:Number(raw)):raw.trim()});
   if(!fields.n||!fields.c)throw new Error("El nombre y la categoría son obligatorios.");
-  const newRecord=isNew, id=newRecord?"manual:"+crypto.randomUUID():selectedId;
+  const newRecord=String(selectedId||"").startsWith("new:"), id=newRecord?"manual:"+crypto.randomUUID():selectedId;
   fields.f="Verificado por Xiclana";fields.v=new Date().toISOString().slice(0,10);
-  const row={listing_id:id,fields,is_new:newRecord,verified_at:new Date().toISOString(),updated_at:new Date().toISOString(),updated_by:user.id};
+  const keepAsNew=newRecord||Boolean(overrides.find(o=>o.listing_id===id)?.is_new);\n  const row={listing_id:id,fields,is_new:keepAsNew,verified_at:new Date().toISOString(),updated_at:new Date().toISOString(),updated_by:user.id};
   const {error}=await client.from("listing_overrides").upsert(row,{onConflict:"listing_id"});if(error)throw error;
   message("Ficha guardada. Los cambios ya están almacenados y aparecerán en la web pública al recargarla.","ok");
   await loadData();selectItem(id);
