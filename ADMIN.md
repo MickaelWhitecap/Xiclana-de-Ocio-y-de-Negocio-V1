@@ -13,11 +13,22 @@ El panel está en `admin.html`. La web pública sigue siendo GitHub Pages. Las e
 5. Guarda los cambios en el repositorio V1. GitHub Actions publicará la versión actualizada.
 6. Abre `https://mickaelwhitecap.github.io/Xiclana-de-Ocio-y-de-Negocio-V1/admin.html` e inicia sesión con tu cuenta.
 
+## Categorías y fichas manuales
+
+Para activar el gestor de categorías, abre **Supabase → SQL Editor**, pega el contenido de `supabase-categories.sql` y ejecútalo una sola vez. Esta migración crea la tabla de categorías y aplica permisos RLS para que solo la cuenta administradora pueda crearlas.
+
+Después, desde `admin.html` podrás:
+- Crear categorías como **Parking** o **Camping**, eligiendo si pertenecen a Ocio o Negocio.
+- Crear una ficha manual y asignarla a una categoría existente o escribir una categoría nueva.
+- Mantener esas fichas en Supabase aunque se regenere el catálogo automático.
+
+Una categoría vacía se guarda en administración, pero solo aparecerá como filtro en la web pública cuando tenga al menos una ficha asignada.
+
 ## Uso
 
 - Busca una ficha por nombre, categoría o dirección.
 - Selecciónala, modifica sus campos y pulsa **Guardar ficha**.
-- Pulsa **Nueva ficha** para incorporar un establecimiento visitado personalmente.
+- Pulsa **Nueva ficha** para incorporar un establecimiento visitado personalmente. Puedes usar las categorías creadas desde el panel.
 - Los datos guardados se almacenan en Supabase y la web pública los incorpora al cargar.
 - La ficha muestra su estado de verificación y fecha de última comprobación.
 
