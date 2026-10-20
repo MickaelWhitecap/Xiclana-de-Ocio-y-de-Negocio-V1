@@ -1,7 +1,7 @@
 -- Xiclana: almacenamiento de cambios manuales y fichas nuevas.
 -- 1) Crea un proyecto Supabase y un usuario de administrador.
 -- 2) Desactiva el registro público de usuarios en Authentication > Settings.
--- 3) Sustituye ADMIN_EMAIL_HERE por el correo exacto de tu cuenta de administrador.
+-- 3) Sustituye surferomc@gmail.com por el correo exacto de tu cuenta de administrador.
 -- 4) Ejecuta este archivo en SQL Editor.
 -- No se usa ni se debe publicar la clave service_role.
 
@@ -27,7 +27,7 @@ create policy "Only Xiclana admin can insert overrides"
   on public.listing_overrides for insert
   to authenticated
   with check (
-    (auth.jwt() ->> 'email') = 'ADMIN_EMAIL_HERE'
+    (auth.jwt() ->> 'email') = 'surferomc@gmail.com'
     and updated_by = auth.uid()
   );
 
@@ -35,9 +35,9 @@ drop policy if exists "Only Xiclana admin can update overrides" on public.listin
 create policy "Only Xiclana admin can update overrides"
   on public.listing_overrides for update
   to authenticated
-  using ((auth.jwt() ->> 'email') = 'ADMIN_EMAIL_HERE')
+  using ((auth.jwt() ->> 'email') = 'surferomc@gmail.com')
   with check (
-    (auth.jwt() ->> 'email') = 'ADMIN_EMAIL_HERE'
+    (auth.jwt() ->> 'email') = 'surferomc@gmail.com'
     and updated_by = auth.uid()
   );
 
@@ -45,7 +45,7 @@ drop policy if exists "Only Xiclana admin can delete overrides" on public.listin
 create policy "Only Xiclana admin can delete overrides"
   on public.listing_overrides for delete
   to authenticated
-  using ((auth.jwt() ->> 'email') = 'ADMIN_EMAIL_HERE');
+  using ((auth.jwt() ->> 'email') = 'surferomc@gmail.com');
 
 create index if not exists listing_overrides_updated_at_idx
   on public.listing_overrides (updated_at desc);
