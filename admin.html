@@ -91,7 +91,7 @@ function effectiveItems(){
  overrides.filter(o=>o.is_new).forEach(o=>{if(!baseItems.some(x=>stableId(x)===o.listing_id))out.push({...o.fields,id:o.listing_id,verified_at:o.verified_at,is_new:true})});
  return out;
 }
-function slugify(value){return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+function slugify(value){return value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
 function renderCategories(){
  const names=new Map();
  categories.forEach(c=>names.set(c.name.toLocaleLowerCase("es"),c));
