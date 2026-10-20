@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Administración · Xiclana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Bricolage+Grotesque:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#f5f6f2;--card:#fff;--ink:#172f42;--mut:#61727d;--bd:#dbe3e2;--nav:#123247;--acc:#17658a;--ok:#246a4a;--err:#a83343}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif}
+header{background:var(--nav);color:white;padding:1rem max(1rem,calc((100% - 1180px)/2));display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+header a{color:white}h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.15}h1{font-size:1.5rem;margin:0}main{max-width:1180px;margin:1.5rem auto;padding:0 1rem 3rem}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:1.1rem;margin-bottom:1rem;box-shadow:0 5px 20px #173f4308}
+label{display:block;font-weight:700;font-size:.9rem;margin-bottom:.25rem}input,select,textarea{width:100%;font:inherit;color:var(--ink);border:1px solid var(--bd);border-radius:9px;padding:.7rem;background:white;min-width:0}textarea{resize:vertical}
+button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;background:var(--nav);color:white;padding:.7rem 1rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:.4rem}button.secondary{background:white;color:var(--ink);border:1px solid var(--bd)}button.danger{background:#fff0f1;color:var(--err);border:1px solid #f0cbd0}button:disabled{opacity:.5;cursor:wait}
+.grid{display:grid;grid-template-columns:minmax(230px,.85fr) minmax(0,1.5fr);gap:1rem;align-items:start}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.wide{grid-column:1/-1}
+.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}.muted{color:var(--mut);font-size:.92rem}.status{padding:.75rem 1rem;border-radius:10px;background:#eaf0f1;margin:.8rem 0}.status.error{background:#fff0f1;color:var(--err)}.status.ok{background:#e8f5ed;color:var(--ok)}
+#list{display:flex;flex-direction:column;gap:.4rem;max-height:65vh;overflow:auto;margin-top:.7rem}.item{width:100%;text-align:left;background:white;color:var(--ink);border:1px solid var(--bd);padding:.7rem;border-radius:9px;display:block}.item.active{border-color:var(--acc);box-shadow:0 0 0 2px #17658a22}.item small{display:block;color:var(--mut);font-weight:400}.pill{font-size:.75rem;border-radius:999px;background:#e7f0f5;padding:.15rem .5rem;display:inline-block;margin-top:.3rem}
+.hidden{display:none!important}.topline{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}#list{max-height:32vh}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><div><h1>Administración de Xiclana</h1><div class="muted" style="color:#d8e5ec">Panel privado · Ocio y de NegOcio</div></div><div class="actions" style="margin:0"><a class="button" href="./">Ver web pública</a><button id="logout" class="secondary hidden">Cerrar sesión</button></div></header>
+<main>
+<div id="status" class="status">Comprobando configuración…</div>
+<section id="login" class="panel hidden">
+<h2>Acceso de administrador</h2><p class="muted">Solo la cuenta autorizada puede guardar cambios. El registro de nuevas cuentas debe permanecer desactivado en Supabase.</p>
+<form id="login-form" class="fields">
+<div class="wide"><label for="email">Correo electrónico</label><input id="email" type="email" autocomplete="username" required></div>
+<div class="wide"><label for="password">Contraseña</label><input id="password" type="password" autocomplete="current-password" required></div>
+<div class="wide"><button id="login-button" type="submit">Iniciar sesión</button></div>
+</form></section>
+<section id="app" class="hidden">
+<div class="panel topline"><div><strong id="who"></strong><div class="muted">Las fichas verificadas se guardan en la base de datos y prevalecen sobre los datos automáticos.</div></div><button id="new-record">＋ Nueva ficha</button></div>
+<div class="grid">
+<aside class="panel"><label for="search">Buscar ficha por nombre, categoría o dirección</label><input id="search" type="search" placeholder="Ej. restaurante, calle…"><div id="count" class="muted"></div><div id="list"></div></aside>
+<section class="panel">
+<div class="topline"><div><h2 id="form-title">Selecciona una ficha</h2><div id="record-meta" class="muted"></div></div></div>
+<form id="record-form" class="fields hidden">
+<div><label for="n">Nombre *</label><input id="n" name="n" required maxlength="180"></div>
+<div><label for="t">Tipo *</label><select id="t" name="t"><option value="negocio">Negocio</option><option value="ocio">Ocio</option></select></div>
+<div><label for="c">Categoría *</label><input id="c" name="c" required maxlength="100" placeholder="Restaurante, peluquería…"></div>
+<div><label for="a">Dirección</label><input id="a" name="a" maxlength="240"></div>
+<div><label for="p">Teléfono</label><input id="p" name="p" maxlength="100"></div>
+<div><label for="e">Correo electrónico</label><input id="e" name="e" type="email" maxlength="180"></div>
+<div class="wide"><label for="w">Web (URL completa)</label><input id="w" name="w" type="url" placeholder="https://…" maxlength="500"></div>
+<div class="wide"><label for="h">Horario</label><input id="h" name="h" maxlength="300"></div>
+<div class="wide"><label for="s">Lo mejor del sitio / dato destacado</label><input id="s" name="s" maxlength="500"></div>
+<div class="wide"><label for="d">Descripción</label><textarea id="d" name="d" rows="4" maxlength="3000"></textarea></div>
+<div><label for="lat">Latitud (opcional)</label><input id="lat" name="lat" type="number" step="any"></div>
+<div><label for="lon">Longitud (opcional)</label><input id="lon" name="lon" type="number" step="any"></div>
+<div class="wide muted">Al guardar, la ficha quedará marcada como verificada por Xiclana con la fecha de hoy. Comprueba que los datos se han recogido correctamente antes de publicarlos.</div>
+<div class="wide actions"><button id="save-button" type="submit">Guardar ficha</button><button id="cancel" type="button" class="secondary">Cancelar</button></div>
+</form>
+<div id="empty-editor" class="muted">Elige una ficha de la lista o pulsa «Nueva ficha».</div>
+</section>
+</div>
+</section>
+<p class="muted">Consejo de seguridad: no compartas la contraseña y no introduzcas nunca una clave service_role en esta página ni en el repositorio.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s), status=$("#status"), login=$("#login"), app=$("#app"), logout=$("#logout"), form=$("#record-form"), list=$("#list");
+const config=window.XICLANA_SUPABASE||{};
+let client=null,user=null,baseItems=[],overrides=[],selectedId=null,isNew=false,visibleItems=[];
+const fieldNames=["n","t","c","a","p","e","w","h","s","d","lat","lon"];
+function message(text,type=""){status.textContent=text;status.className="status"+(type?" "+type:"");status.classList.remove("hidden")}
+function showLogin(){login.classList.remove("hidden");app.classList.add("hidden");logout.classList.add("hidden")}
+function showApp(){login.classList.add("hidden");app.classList.remove("hidden");logout.classList.remove("hidden");$("#who").textContent="Sesión: "+(user?.email||"administrador")}
+function stableId(x){if(x.id)return String(x.id);return "legacy:"+[x.n,x.t,x.a].map(v=>String(v||"").trim().toLowerCase()).join("|")}
+function effectiveItems(){
+ const byId=new Map(overrides.map(o=>[o.listing_id,o]));
+ const out=baseItems.map(x=>{const id=stableId(x),o=byId.get(id);return {...x,id,...(o?.fields||{}),id,verified_at:o?.verified_at||null,is_new:false}});
+ overrides.filter(o=>o.is_new).forEach(o=>{if(!baseItems.some(x=>stableId(x)===o.listing_id))out.push({...o.fields,id:o.listing_id,verified_at:o.verified_at,is_new:true})});
+ return out;
+}
+function refreshList(){
+ visibleItems=effectiveItems();const q=$("#search").value.trim().toLocaleLowerCase("es");
+ const matches=visibleItems.filter(x=>[x.n,x.c,x.a,x.p].join(" ").toLocaleLowerCase("es").includes(q)).sort((a,b)=>String(a.n||"").localeCompare(String(b.n||""),"es"));
+ list.textContent="";$("#count").textContent=matches.length+" fichas";
+ matches.forEach(x=>{const b=document.createElement("button");b.type="button";b.className="item"+(x.id===selectedId?" active":"");b.append(document.createTextNode(x.n||"Sin nombre"));const small=document.createElement("small");small.textContent=(x.c||"Sin categoría")+" · "+(x.a||"Sin dirección");b.append(small);if(x.verified_at){const p=document.createElement("span");p.className="pill";p.textContent="Verificada";b.append(p)}b.onclick=()=>selectItem(x.id);list.append(b)});
+}
+function selectItem(id){const x=effectiveItems().find(v=>v.id===id);if(!x)return;selectedId=id;isNew=false;$("#form-title").textContent=x.n;$("#record-meta").textContent=x.verified_at?"Última verificación: "+new Date(x.verified_at).toLocaleString("es-ES"):"Ficha de directorio";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");fieldNames.forEach(k=>{const input=form.elements[k];input.value=x[k]??""});refreshList()}
+function startNew(){selectedId="new:"+crypto.randomUUID();isNew=true;$("#form-title").textContent="Nueva ficha";$("#record-meta").textContent="Se añadirá al directorio público";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");form.reset();$("#t").value="negocio";refreshList()}
+function cancelEdit(){selectedId=null;isNew=false;form.classList.add("hidden");$("#empty-editor").classList.remove("hidden");$("#form-title").textContent="Selecciona una ficha";$("#record-meta").textContent="";refreshList()}
+async function loadData(){
+ const [dataRes,overrideRes]=await Promise.all([fetch("./data.json",{cache:"no-store"}),client.from("listing_overrides").select("listing_id,fields,is_new,verified_at,updated_at")]);
+ if(!dataRes.ok)throw new Error("No se pudo cargar data.json. Comprueba que GitHub Pages haya publicado el sitio.");
+ const data=await dataRes.json();if(overrideRes.error)throw overrideRes.error;
+ baseItems=(data.items||[]).map(x=>({...x}));overrides=overrideRes.data||[];refreshList();
+}
+form.addEventListener("submit",async e=>{
+ e.preventDefault();if(!user)return;
+ const btn=$("#save-button");btn.disabled=true;btn.textContent="Guardando…";
+ try{
+  const fields={};fieldNames.forEach(k=>{const raw=form.elements[k].value;fields[k]=["lat","lon"].includes(k)?(raw===""?null:Number(raw)):raw.trim()});
+  if(!fields.n||!fields.c)throw new Error("El nombre y la categoría son obligatorios.");
+  const newRecord=isNew, id=newRecord?"manual:"+crypto.randomUUID():selectedId;
+  fields.f="Verificado por Xiclana";fields.v=new Date().toISOString().slice(0,10);
+  const row={listing_id:id,fields,is_new:newRecord,verified_at:new Date().toISOString(),updated_at:new Date().toISOString(),updated_by:user.id};
+  const {error}=await client.from("listing_overrides").upsert(row,{onConflict:"listing_id"});if(error)throw error;
+  message("Ficha guardada. Los cambios ya están almacenados y aparecerán en la web pública al recargarla.","ok");
+  await loadData();selectItem(id);
+ }catch(err){message("No se pudo guardar: "+(err.message||"error desconocido"),"error")}
+ finally{btn.disabled=false;btn.textContent="Guardar ficha"}
+});
+$("#login-form").addEventListener("submit",async e=>{e.preventDefault();const btn=$("#login-button");btn.disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$("#email").value.trim(),password:$("#password").value});if(error)throw error;user=data.user;showApp();await loadData();message("Sesión iniciada. Solo la cuenta autorizada puede guardar cambios.","ok")}catch(err){message("No se pudo iniciar sesión: "+(err.message||"revisa el correo y la contraseña."),"error")}finally{btn.disabled=false}});
+logout.onclick=async()=>{await client.auth.signOut();user=null;showLogin();message("Sesión cerrada.")};
+$("#search").addEventListener("input",refreshList);$("#new-record").onclick=startNew;$("#cancel").onclick=cancelEdit;
+async function init(){
+ if(!config.url||!config.anonKey){message("Falta configurar Supabase. Sigue ADMIN.md en el repositorio V1 para conectar la base de datos y activar el acceso privado.","error");return}
+ if(!window.supabase?.createClient){message("No se ha podido cargar la biblioteca de acceso. Recarga la página o inténtalo más tarde.","error");return}
+ client=window.supabase.createClient(config.url,config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const {data,error}=await client.auth.getSession();if(error){message("Error al comprobar la sesión: "+error.message,"error");showLogin();return}
+ if(data.session){user=data.session.user;showApp();try{await loadData();message("Sesión activa. Elige una ficha para editarla.","ok")}catch(err){message("Error al cargar fichas: "+err.message,"error")}}
+ else{showLogin();message("Inicia sesión con la cuenta privada de administración.")}
+}
+init();
+})();
+</script>
+</body></html>
