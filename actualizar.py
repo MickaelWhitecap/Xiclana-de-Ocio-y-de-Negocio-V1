@@ -105,15 +105,15 @@ def convertir(elementos):
 def descargar():
     """Pide los datos a OpenStreetMap. Si no responde a tiempo, devuelve None (sin abortar)."""
     datos = urllib.parse.urlencode({"data": CONSULTA}).encode()
-    for _ in range(2):
+    for _ in range(3):
         for url in SERVIDORES:
             try:
                 req = urllib.request.Request(url, data=datos, headers={"User-Agent": "chiclana-directorio/1.0"})
-                with urllib.request.urlopen(req, timeout=90) as r:
+                with urllib.request.urlopen(req, timeout=240) as r:
                     return json.load(r)["elements"]
             except Exception as err:
                 print("Fallo en", url, err, file=sys.stderr)
-        time.sleep(20)
+        time.sleep(30)
     return None
 
 PARO = {"de", "del", "la", "las", "el", "los", "y", "en", "hotel", "chiclana"}
@@ -188,8 +188,8 @@ def principal():
             osm, fecha = previa["items"], previa["fecha"]
             print(f"::warning::OpenStreetMap no respondió; se usa la copia del {fecha}")
         else:
-            osm, fecha = [], datetime.date.today().isoformat()
-            print("::warning::OpenStreetMap no respondió y no hay copia: se publica solo con las fuentes locales")
+            # No publicar un directorio parcial: conservar la versión anterior si OSM falla.
+            sys.exit("OpenStreetMap no respondió y no existe una copia local; se cancela la publicación para no perder categorías ni fichas.")
     todo = fusionar(manuales, oficiales, turismo, osm)
     todo.sort(key=lambda x: x["n"].lower())
     (RAIZ / "data.json").write_text(json.dumps({"actualizado": fecha, "items": todo, "destacados": destacados},
