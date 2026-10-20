@@ -1,20 +1,25 @@
 name: Actualizar sitio
+
 on:
   schedule:
-    - cron: "0 4 * * 1"   # cada lunes a las 04:00 (hora UTC)
-  workflow_dispatch:       # permite pulsar un botón para ejecutarlo a mano
+    - cron: "0 4 * * 1" # Cada lunes a las 04:00 UTC
+  workflow_dispatch:
   push:
-    branches: [main]       # también se ejecuta al subir archivos
+    branches: [main]
+
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   construir-y-publicar:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment:
       name: github-pages
       url: ${{ steps.despliegue.outputs.page_url }}
@@ -23,14 +28,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Descargar datos de OpenStreetMap
+      - name: Descargar datos y generar data.json
         run: python actualizar.py
+      - name: Guardar copia de los datos de OpenStreetMap
+        run: |
+          if [ -f datos/osm.json ]; then
+            git config user.name "robot-xiclana"
+            git config user.email "actions@users.noreply.github.com"
+            git add datos/osm.json
+            git diff --cached --quiet || (git commit -m "Actualizar copia de datos de OpenStreetMap" && git push)
+          fi
       - name: Preparar carpeta del sitio
         run: |
           mkdir _site
           cp index.html data.json _site/
           cp fondo.jpg fondo.txt _site/ 2>/dev/null || true
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

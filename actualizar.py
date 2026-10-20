@@ -5,7 +5,7 @@ import json, sys, time, datetime, pathlib, re, unicodedata, urllib.parse, urllib
 RAIZ = pathlib.Path(__file__).parent
 SERVIDORES = ["https://overpass-api.de/api/interpreter",
               "https://overpass.kumi.systems/api/interpreter"]
-CONSULTA = """[out:json][timeout:180];
+CONSULTA = """[out:json][timeout:60];
 area["boundary"="administrative"]["name"="Chiclana de la Frontera"]->.z;
 (
  nwr["shop"](area.z);
@@ -103,17 +103,18 @@ def convertir(elementos):
     return salida
 
 def descargar():
+    """Pide los datos a OpenStreetMap. Si no responde a tiempo, devuelve None (sin abortar)."""
     datos = urllib.parse.urlencode({"data": CONSULTA}).encode()
-    for _ in range(3):
+    for _ in range(2):
         for url in SERVIDORES:
             try:
                 req = urllib.request.Request(url, data=datos, headers={"User-Agent": "chiclana-directorio/1.0"})
-                with urllib.request.urlopen(req, timeout=240) as r:
+                with urllib.request.urlopen(req, timeout=90) as r:
                     return json.load(r)["elements"]
             except Exception as err:
                 print("Fallo en", url, err, file=sys.stderr)
-        time.sleep(30)
-    sys.exit("No se pudo descargar nada de OpenStreetMap")
+        time.sleep(20)
+    return None
 
 PARO = {"de", "del", "la", "las", "el", "los", "y", "en", "hotel", "chiclana"}
 CAMPOS = ("p", "e", "w", "h", "d", "s", "m", "a", "lat", "lon")
@@ -151,19 +152,35 @@ def fusionar(*listas):
     for x in todo: x.pop("_k")
     return todo
 
-if __name__ == "__main__":
-    osm = convertir(descargar())
-    if len(osm) < 30:   # protección: si falla la descarga, NO se borra la web
-        sys.exit(f"Solo {len(osm)} resultados: se cancela para no estropear el sitio")
-    manuales = json.loads((RAIZ / "manuales.json").read_text(encoding="utf-8"))
-    ofi = RAIZ / "oficiales.json"
-    oficiales = json.loads(ofi.read_text(encoding="utf-8")) if ofi.exists() else []
-    tur = RAIZ / "turismo.json"
-    turismo = json.loads(tur.read_text(encoding="utf-8")) if tur.exists() else []
+def _leer(nombre, defecto):
+    f = RAIZ / nombre
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else defecto
+
+def principal():
+    manuales = _leer("manuales.json", [])
+    oficiales = _leer("oficiales.json", [])
+    turismo = _leer("turismo.json", [])
+    destacados = _leer("destacados.json", {})
+    elementos = descargar()
+    osm = convertir(elementos) if elementos else []
+    if len(osm) >= 30:                      # descarga buena: se guarda copia para futuros fallos
+        fecha = datetime.date.today().isoformat()
+        copia = RAIZ / "datos" / "osm.json"
+        copia.parent.mkdir(exist_ok=True)
+        copia.write_text(json.dumps({"fecha": fecha, "items": osm}, ensure_ascii=False), encoding="utf-8")
+    else:                                   # OpenStreetMap no respondió: se usa la última copia buena
+        previa = _leer("datos/osm.json", None)
+        if previa:
+            osm, fecha = previa["items"], previa["fecha"]
+            print(f"::warning::OpenStreetMap no respondió; se usa la copia del {fecha}")
+        else:
+            osm, fecha = [], datetime.date.today().isoformat()
+            print("::warning::OpenStreetMap no respondió y no hay copia: se publica solo con las fuentes locales")
     todo = fusionar(manuales, oficiales, turismo, osm)
     todo.sort(key=lambda x: x["n"].lower())
-    dst = RAIZ / "destacados.json"
-    destacados = json.loads(dst.read_text(encoding="utf-8")) if dst.exists() else {}
-    (RAIZ / "data.json").write_text(json.dumps({"actualizado": datetime.date.today().isoformat(), "items": todo,
-                                                "destacados": destacados}, ensure_ascii=False), encoding="utf-8")
-    print(len(todo), "fichas guardadas")
+    (RAIZ / "data.json").write_text(json.dumps({"actualizado": fecha, "items": todo, "destacados": destacados},
+                                               ensure_ascii=False), encoding="utf-8")
+    print(len(todo), "fichas guardadas", "(sin datos de OpenStreetMap)" if not osm else "(datos de OpenStreetMap del " + fecha + ")")
+
+if __name__ == "__main__":
+    principal()
