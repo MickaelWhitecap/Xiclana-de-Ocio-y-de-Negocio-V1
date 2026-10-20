@@ -357,22 +357,14 @@ footer{margin-top:3.5rem;padding:2rem 1rem;line-height:1.7}
 <p style="color:var(--mut);margin-top:0">Ningún directorio fijo puede abarcar todos los comercios: estas búsquedas abren Google Maps con datos siempre actualizados.</p>
 <div class="chips" id="maps"></div>
 
-<details><summary>＋ Añadir un sitio o negocio</summary>
-<form id="f">
-<input name="n" placeholder="Nombre *" required><select name="t"><option value="negocio">Negocio</option><option value="ocio">Ocio</option></select>
-<input name="c" placeholder="Categoría (ej. Restaurante) *" required><input name="a" placeholder="Dirección">
-<input name="p" placeholder="Teléfono"><input name="s" placeholder="Lo mejor del sitio (plato estrella, vistas…)"><input name="w" type="url" placeholder="Web (https://…)">
-<textarea class="w" name="d" rows="2" placeholder="Descripción"></textarea>
-<div class="w"><button class="btn" type="submit">Guardar</button> <button class="btn s" type="button" id="exp">Exportar JSON</button> <button class="btn s" type="button" id="imp">Importar JSON</button></div>
-</form>
-<p style="color:var(--mut);font-size:.85rem">Tus altas se guardan en este navegador. Exporta el JSON para conservarlas o pasarlas a otro dispositivo.</p></details></div>
+</div>
 </main></div><aside class="lado" id="lado-d" aria-label="Espacio destacado"></aside></div>
 <footer><div id="fecha"></div>Datos de © colaboradores de <a href="https://www.openstreetmap.org/copyright" style="color:inherit">OpenStreetMap</a> (licencia ODbL) y del Ayuntamiento de Chiclana, <a href="https://datosabiertos.chiclana.es" style="color:inherit">Portal de Datos Abiertos</a> (licencia ODC-By). Datos orientativos: comprueba horarios y teléfonos antes de ir. Sitio independiente, sin vinculación oficial con el Ayuntamiento.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <script>
 let SEED=[],LIM=120;
 const CATS=["Hoteles","Apartamentos turísticos","Supermercados","Farmacias","Talleres mecánicos","Peluquerías","Inmobiliarias","Gestorías","Abogados","Clínicas","Gimnasios","Ferreterías","Panaderías","Bodegas y vinos","Tiendas de ropa","Colegios","Clubes náuticos","Alquiler de coches"];
-let mine=[];try{mine=JSON.parse(localStorage.getItem("chic")||"[]")}catch(e){}
-const save=()=>{try{localStorage.setItem("chic",JSON.stringify(mine))}catch(e){}};
 const $=s=>document.querySelector(s),el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const map=s=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(s+" Chiclana de la Frontera 11130");
 let cat="",modo="";
@@ -392,7 +384,7 @@ function pintarDest(){const a=activos().map((d,i)=>({d,l:d.lado?String(d.lado).t
 ["i","d"].forEach(k=>{const box=$("#lado-"+k);box.textContent="";const m=a.filter(x=>x.l===k);m.slice(0,2).forEach(x=>box.append(tarjetaSp(x.d)));if(!m.length){const q=hueco();if(q)box.append(q)}});
 const s=$("#dest-strip");s.textContent="";a.forEach(x=>s.append(tarjetaSp(x.d)));s.hidden=!a.length}
 function render(){
- const all=[...SEED,...mine];document.querySelectorAll(".cnt").forEach(e=>{const k=all.filter(x=>x.t===e.dataset.c).length;e.textContent=k.toLocaleString("es-ES")+(k===1?" ficha":" fichas")});const q=$("#q").value.toLowerCase(),t=modo;
+ const all=[...SEED];document.querySelectorAll(".cnt").forEach(e=>{const k=all.filter(x=>x.t===e.dataset.c).length;e.textContent=k.toLocaleString("es-ES")+(k===1?" ficha":" fichas")});const q=$("#q").value.toLowerCase(),t=modo;
  const cs=[...new Set(all.filter(x=>x.t===modo).map(x=>x.c))].sort();const ch=$("#chips");ch.textContent="";
  [["", "Todas"],...cs.map(c=>[c,c])].forEach(([v,l])=>{const b=el("button","chip"+(cat===v?" on":""),(cat===v?"✓ ":"")+l);b.onclick=()=>{cat=v;render()};ch.append(b)});
  const g=$("#grid");g.textContent="";let n=0;
@@ -401,9 +393,9 @@ function render(){
   if(q&&![x.n,x.c,x.a,x.d].join(" ").toLowerCase().includes(q))return;
   n++;if(n>LIM)return;const c=el("details","card");const sum=el("summary","card-summary");c.addEventListener("click",e=>{const target=e.target instanceof Element?e.target:e.target?.parentElement;if(target?.closest("a,button,input,textarea,select"))return;if(target?.closest("summary"))e.preventDefault();if(c.dataset.pinned==="true"){delete c.dataset.pinned;delete c.dataset.previewOpen;c.open=false;c.classList.remove("preview","centered");return}c.dataset.pinned="true";delete c.dataset.previewOpen;c.open=true;c.classList.remove("preview");c.classList.add("centered")});const tp=el("div","top");tp.append(el("span","ic",ico(x)),el("span","tag",x.c));sum.append(tp,el("h3","",x.n));c.append(sum);const info=el("div","card-details");
   if(x.a)info.append(el("p","","📍 "+x.a));{let p=el("p","");p.append("📞 ");if(x.p){const t=x.p.split(/[;,\/]|ext/i)[0].replace(/[^\d+]/g,""),a=el("a","",x.p);a.href="tel:"+(/^\d{9}$/.test(t)?"+34"+t:t);p.append(a)}else if(!/playa|parque|natur|patrimonio|mirador|plaza|atracc/i.test(x.c)){p.append("sin teléfono registrado");p.className="mut"}else p=null;if(p)info.append(p)}if(x.e){const q=el("p","");q.append("✉️ ");const a=el("a","",x.e);a.href="mailto:"+x.e;q.append(a);info.append(q)}if(x.s)info.append(el("p","s","⭐ "+x.s));if(x.h)info.append(el("p","","🕒 "+x.h));if(x.d)info.append(el("p","",x.d));
-  if(x.f)info.append(el("p","f","Fuente: "+x.f));const a=el("div","acts"),m=el("a","","Ver en Google Maps");m.href=x.m&&/^https?:\/\//.test(x.m)?x.m:map(x.n+(x.c&&!x.n.toLowerCase().includes(x.c.toLowerCase())?" "+x.c:""));m.target="_blank";m.rel="noopener";a.append(m);if(x.lat){const dd=el("a","","Cómo llegar");dd.href="https://www.google.com/maps/dir/?api=1&destination="+x.lat+","+x.lon;dd.target="_blank";dd.rel="noopener";a.append(dd)}
+  if(x.f)info.append(el("p","f","Fuente: "+x.f));if(x.v)info.append(el("p","f","Verificado por Xiclana · "+String(x.v).split("-").reverse().join("/")));const a=el("div","acts"),m=el("a","","Ver en Google Maps");m.href=x.m&&/^https?:\/\//.test(x.m)?x.m:map(x.n+(x.c&&!x.n.toLowerCase().includes(x.c.toLowerCase())?" "+x.c:""));m.target="_blank";m.rel="noopener";a.append(m);if(x.lat){const dd=el("a","","Cómo llegar");dd.href="https://www.google.com/maps/dir/?api=1&destination="+x.lat+","+x.lon;dd.target="_blank";dd.rel="noopener";a.append(dd)}
   if(x.w&&/^https?:\/\//.test(x.w)){const w=el("a","","Web");w.href=x.w;w.target="_blank";w.rel="noopener";a.append(w)}
-  if(!x.seed){const d=el("button","lnk","Eliminar");d.onclick=()=>{mine.splice(i-SEED.length,1);save();render()};a.append(d)}
+  
   info.append(a);c.append(info);g.append(c)});
  if(n>LIM){const b=el("button","btn s","Mostrar más ("+(n-LIM)+" restantes)");b.style.gridColumn="1/-1";b.onclick=()=>{LIM+=120;render()};g.append(b)}
  $("#empty").hidden=n>0}
@@ -418,10 +410,25 @@ grid.addEventListener("mouseover",e=>{const card=cardFromEvent(e);if(!card||card
 grid.addEventListener("mouseout",e=>{const card=cardFromEvent(e);if(!card||card.dataset.pinned==="true"||card.dataset.previewOpen!=="true")return;if(e.relatedTarget&&card.contains(e.relatedTarget))return;card.open=false;delete card.dataset.previewOpen;card.classList.remove("preview")});
 
 document.querySelectorAll(".op").forEach(b=>b.onclick=()=>elegir(b.dataset.m));
-$("#f").onsubmit=e=>{e.preventDefault();const d=new FormData(e.target);mine.push({n:d.get("n"),t:d.get("t"),c:d.get("c"),a:d.get("a"),p:d.get("p"),w:d.get("w"),s:d.get("s"),d:d.get("d")});save();e.target.reset();render()};
-$("#exp").onclick=()=>{const s=JSON.stringify(mine,null,1);navigator.clipboard?.writeText(s).then(()=>alert("JSON copiado al portapapeles"),()=>prompt("Copia el JSON:",s))||prompt("Copia el JSON:",s)};
-$("#imp").onclick=()=>{const s=prompt("Pega aquí el JSON exportado:");if(!s)return;try{const a=JSON.parse(s);if(Array.isArray(a)){mine=mine.concat(a.filter(x=>x&&x.n&&x.c&&(x.t==="ocio"||x.t==="negocio")).map(x=>({n:String(x.n),t:x.t,c:String(x.c),a:x.a?String(x.a):"",p:x.p?String(x.p):"",w:x.w?String(x.w):"",s:x.s?String(x.s):"",d:x.d?String(x.d):""})));save();render()}}catch(e){alert("JSON no válido")}};
-fetch("data.json").then(r=>r.json()).then(j=>{SEED=j.items.map(x=>({...x,seed:1}));DEST=j.destacados||{};pintarDest();$("#fecha").textContent="Última actualización automática: "+j.actualizado+" · "+j.items.length+" fichas";render()}).catch(()=>render());
-const im=new Image();im.onload=()=>{document.querySelector(".hero").classList.add("foto");fetch("fondo.txt").then(r=>r.ok?r.text():"").then(t=>{$("#cr").textContent=t.trim()}).catch(()=>{})};im.src="fondo.jpg";
+async function aplicarCambios(j){
+  let items=(j.items||[]).map(x=>({...x,seed:1}));
+  const cfg=window.XICLANA_SUPABASE||{};
+  if(cfg.url&&cfg.anonKey&&window.supabase?.createClient){
+   try{
+    const sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+    const {data,error}=await sb.from("listing_overrides").select("listing_id,fields,is_new,verified_at");
+    if(error)throw error;
+    const byId=new Map((data||[]).map(o=>[o.listing_id,o]));
+    items=items.map(x=>{const o=byId.get(String(x.id||""));return o?({...x,...(o.fields||{}),id:x.id,seed:1,verified_at:o.verified_at}):x});
+    const ids=new Set(items.map(x=>String(x.id||"")));
+    (data||[]).filter(o=>o.is_new&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
+   }catch(err){console.warn("No se pudieron cargar las fichas verificadas de Supabase:",err)}
+  }
+  SEED=items;DEST=j.destacados||{};pintarDest();
+  $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
+  render();
+ }
+ fetch("data.json").then(r=>{if(!r.ok)throw new Error("No se pudo cargar data.json");return r.json()}).then(aplicarCambios).catch(err=>{console.error(err);render()});
+ const im=new Image();im.onload=()=>{document.querySelector(".hero").classList.add("foto");fetch("fondo.txt").then(r=>r.ok?r.text():"").then(t=>{$("#cr").textContent=t.trim()}).catch(()=>{})};im.src="fondo.jpg";
 pintarDest();
 </script></body></html>
