@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Descarga de OpenStreetMap los comercios y lugares de Chiclana y crea data.json."""
-import json, sys, time, datetime, pathlib, re, unicodedata, urllib.parse, urllib.request
+import json, sys, time, datetime, pathlib, re, unicodedata, urllib.parse, urllib.request, hashlib
 
 RAIZ = pathlib.Path(__file__).parent
 SERVIDORES = ["https://overpass-api.de/api/interpreter",
@@ -95,7 +95,7 @@ def convertir(elementos):
         vistos.add(clave)
         web = t.get("website") or t.get("contact:website") or ""
         if web and not web.startswith("http"): web = "https://" + web
-        item = {"n": nombre, "c": cl[0], "t": cl[1], "a": direccion(t),
+        item = {"id": f"osm:{e.get('type', 'element')}:{e.get('id', '')}", "n": nombre, "c": cl[0], "t": cl[1], "a": direccion(t),
                 "p": t.get("phone") or t.get("contact:phone") or t.get("contact:mobile") or t.get("mobile") or "", "w": web,
                 "s": distintivo(t),
                 "h": t.get("opening_hours", ""), "e": t.get("email") or t.get("contact:email") or "", "lat": lat, "lon": lon, "f": "OpenStreetMap"}
@@ -156,10 +156,24 @@ def _leer(nombre, defecto):
     f = RAIZ / nombre
     return json.loads(f.read_text(encoding="utf-8")) if f.exists() else defecto
 
+def _asegurar_ids(lista, fuente):
+    """Asigna identificadores estables a las fichas que no los tengan."""
+    salida = []
+    for original in lista:
+        item = dict(original)
+        if not item.get("id"):
+            base = "\\x1f".join(str(item.get(k, "") or "").strip().casefold()
+                                for k in ("n", "t", "c", "a"))
+            digest = hashlib.sha256(base.encode("utf-8")).hexdigest()[:20]
+            item["id"] = f"{fuente}:{digest}"
+        salida.append(item)
+    return salida
+
+
 def principal():
-    manuales = _leer("manuales.json", [])
-    oficiales = _leer("oficiales.json", [])
-    turismo = _leer("turismo.json", [])
+    manuales = _asegurar_ids(_leer("manuales.json", []), "manual")
+    oficiales = _asegurar_ids(_leer("oficiales.json", []), "oficial")
+    turismo = _asegurar_ids(_leer("turismo.json", []), "turismo")
     destacados = _leer("destacados.json", {})
     elementos = descargar()
     osm = convertir(elementos) if elementos else []
