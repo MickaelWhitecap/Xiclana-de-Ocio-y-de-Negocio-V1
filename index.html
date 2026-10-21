@@ -417,7 +417,7 @@ async function aplicarCambios(j){
    try{
     const sb=window.supabase.createClient(cfg.url,cfg.anonKey);
     const {data:categorias,error:catError}=await sb.from("listing_categories").select("slug,name,type");
-    if(!catError)CATEGORIAS_DB=categorias||[];
+    if(!catError)CATEGORIAS_DB=(categorias||[]).filter(x=>!(String(x.name||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"&&String(x.type||"").toLowerCase()==="negocio"));
     else console.warn("No se pudieron cargar las categorías de Supabase:",catError);
     const data=[];
     for(let desde=0;;desde+=1000){
@@ -446,7 +446,7 @@ async function aplicarCambios(j){
     items=items.filter(x=>!claveRana(x));
     items.push(conservar);
   }
-  SEED=items;DEST=j.destacados||{};pintarDest();
+  // Camping pertenece a Ocio: evitar que fichas o categorías lo muestren también en Negocio.\n  items=items.map(x=>String(x.c||"").normalize("NFD").replace(/\\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"?({...x,t:"ocio"}):x);\n  CATEGORIAS_DB=CATEGORIAS_DB.filter(x=>!(String(x.name||"").normalize("NFD").replace(/\\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"&&String(x.type||"").toLowerCase()==="negocio"));\n  SEED=items;DEST=j.destacados||{};pintarDest();
   $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
   render();
  }
