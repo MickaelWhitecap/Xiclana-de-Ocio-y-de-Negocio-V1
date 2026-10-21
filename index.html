@@ -419,8 +419,13 @@ async function aplicarCambios(j){
     const {data:categorias,error:catError}=await sb.from("listing_categories").select("slug,name,type");
     if(!catError)CATEGORIAS_DB=categorias||[];
     else console.warn("No se pudieron cargar las categorías de Supabase:",catError);
-    const {data,error}=await sb.from("listing_overrides").select("listing_id,fields,is_new,verified_at");
-    if(error)throw error;
+    const data=[];
+    for(let desde=0;;desde+=1000){
+      const {data:pagina,error}=await sb.from("listing_overrides").select("listing_id,fields,is_new,verified_at").range(desde,desde+999);
+      if(error)throw error;
+      data.push(...(pagina||[]));
+      if(!pagina||pagina.length<1000)break;
+    }
     const byId=new Map((data||[]).map(o=>[o.listing_id,o]));
     items=items.map(x=>{const o=byId.get(String(x.id||""));return o?({...x,...(o.fields||{}),id:x.id,seed:1,verified_at:o.verified_at}):x});
     const ids=new Set(items.map(x=>String(x.id||"")));
