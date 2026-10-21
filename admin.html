@@ -114,8 +114,16 @@ function showApp(){login.classList.add("hidden");app.classList.remove("hidden");
 function stableId(x){if(x.id)return String(x.id);return "legacy:"+[x.n,x.t,x.a].map(v=>String(v||"").trim().toLowerCase()).join("|")}
 function effectiveItems(){
  const byId=new Map(overrides.map(o=>[o.listing_id,o]));
- const out=baseItems.map(x=>{const id=stableId(x),o=byId.get(id);return {...x,id,...(o?.fields||{}),id,verified_at:o?.verified_at||null,is_new:false}});
+ let out=baseItems.map(x=>{const id=stableId(x),o=byId.get(id);return {...x,id,...(o?.fields||{}),id,verified_at:o?.verified_at||null,is_new:false}});
  overrides.filter(o=>o.is_new).forEach(o=>{if(!baseItems.some(x=>stableId(x)===o.listing_id))out.push({...o.fields,id:o.listing_id,verified_at:o.verified_at,is_new:true})});
+ // En la administración, agrupar las variantes del mismo Camping La Rana Verde sin borrar registros de la base de datos.
+ const claveRana=x=>String(x.n||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/^(?:camping )?(?:la )?/,"")==="rana verde";
+ const rana=out.filter(claveRana);
+ if(rana.length>1){
+  const puntuacion=x=>Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0)+(String(x.id||"").startsWith("manual:")?0.25:0);
+  const conservar=rana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
+  out=out.filter(x=>!claveRana(x)||x===conservar);
+ }
  return out;
 }
 function slugify(value){return value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
