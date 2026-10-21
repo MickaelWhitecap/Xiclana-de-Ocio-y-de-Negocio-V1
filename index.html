@@ -427,6 +427,10 @@ async function aplicarCambios(j){
     (data||[]).filter(o=>o.is_new&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
    }catch(err){console.warn("No se pudieron cargar las fichas verificadas de Supabase:",err)}
   }
+  // Si una ficha manual aprobada tiene el mismo nombre que una ficha base, mostrar la manual más completa y evitar duplicados.
+  const nombreClave=v=>String(v||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const nombresManuales=new Set(items.filter(x=>String(x.id||"").startsWith("manual:")).map(x=>nombreClave(x.n)));
+  items=items.filter(x=>String(x.id||"").startsWith("manual:")||!nombresManuales.has(nombreClave(x.n)));
   SEED=items;DEST=j.destacados||{};pintarDest();
   $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
   render();
