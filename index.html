@@ -432,17 +432,19 @@ async function aplicarCambios(j){
     (data||[]).filter(o=>o.is_new&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
    }catch(err){console.warn("No se pudieron cargar las fichas verificadas de Supabase:",err)}
   }
-  // Unificar todas las variantes conocidas de Camping La Rana Verde y conservar la ficha más completa.
+  // Unificar todas las variantes de La Rana Verde y priorizar la ficha de Ocio.
   const nombreClave=v=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
   const claveRana=x=>{
     const nombre=nombreClave(x.n||x.nombre||x.name||x.title);
-    return nombre.replace(/^(?:camping\s+)?(?:la\s+)?/,"").trim()==="rana verde";
+    return nombre.includes("rana verde");
   };
   const candidatasRana=items.filter(claveRana);
-  if(candidatasRana.length>1){
-    const puntuacion=x=>(String(x.id||"").startsWith("manual:")?10000:0)+Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0);
-    const conservar=candidatasRana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
-    items=items.filter(x=>!claveRana(x)||x===conservar);
+  if(candidatasRana.length){
+    const puntuacion=x=>(String(x.t||x.tipo||"").toLowerCase()==="ocio"?100000:0)+(String(x.id||"").startsWith("manual:")?10000:0)+Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0);
+    const mejor=candidatasRana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
+    const conservar={...mejor,t:"ocio",c:"Camping"};
+    items=items.filter(x=>!claveRana(x));
+    items.push(conservar);
   }
   SEED=items;DEST=j.destacados||{};pintarDest();
   $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
