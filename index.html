@@ -427,14 +427,17 @@ async function aplicarCambios(j){
     (data||[]).filter(o=>o.is_new&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
    }catch(err){console.warn("No se pudieron cargar las fichas verificadas de Supabase:",err)}
   }
-  // Limpieza específica de variantes de Camping La Rana Verde: conservar una sola ficha, la más completa.
-  const nombreClave=v=>String(v||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  const esRanaVerde=x=>/^(?:camping )?(?:la )?rana verde$/.test(nombreClave(x.n));
-  const candidatasRana=items.filter(esRanaVerde);
+  // Unificar todas las variantes conocidas de Camping La Rana Verde y conservar la ficha más completa.
+  const nombreClave=v=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const claveRana=x=>{
+    const nombre=nombreClave(x.n||x.nombre||x.name||x.title);
+    return nombre.replace(/^(?:camping\s+)?(?:la\s+)?/,"").trim()==="rana verde";
+  };
+  const candidatasRana=items.filter(claveRana);
   if(candidatasRana.length>1){
     const puntuacion=x=>Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0)+(String(x.id||"").startsWith("manual:")?0.25:0);
     const conservar=candidatasRana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
-    items=items.filter(x=>!esRanaVerde(x)||x===conservar);
+    items=items.filter(x=>!claveRana(x)||x===conservar);
   }
   SEED=items;DEST=j.destacados||{};pintarDest();
   $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
