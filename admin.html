@@ -62,6 +62,13 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;backgroun
   <div><label for="pr-notes">Notas internas</label><input id="pr-notes" maxlength="1000" placeholder="Qué falta verificar"></div>
   <div class="wide actions"><button id="proposal-save" type="submit">Guardar como provisional</button></div>
  </form>
+ <div class="panel" style="margin-top:1rem;background:#f8faf9">
+  <h3>Importar lote de fichas provisionales</h3>
+  <p class="muted">Pega un array JSON de objetos. Se guardarán únicamente como propuestas privadas pendientes; esta herramienta nunca publica automáticamente. Máximo 100 fichas por lote. Campos admitidos: n (nombre), c (categoría), t (ocio/negocio), a (dirección), p (teléfono), e (correo), w (web), h (horario), s (destacado), d (descripción), source_name, source_url, notes.</p>
+  <label for="proposal-json">Lote JSON</label>
+  <textarea id="proposal-json" rows="7" placeholder='[{"n":"Nombre","c":"Camping","t":"ocio","a":"Dirección","w":"https://ejemplo.es","source_name":"Web oficial","source_url":"https://ejemplo.es","notes":"Pendiente de verificación"}]'></textarea>
+  <div class="actions"><button id="proposal-import" type="button">Importar como provisionales</button><button id="proposal-example" type="button" class="secondary">Cargar ejemplo</button></div>
+ </div>
  <h3>Propuestas pendientes</h3><div id="proposal-list" class="muted">Cargando propuestas…</div>
 </section>
 
@@ -196,6 +203,36 @@ $("#proposal-form").addEventListener("submit",async e=>{
  finally{btn.disabled=false;btn.textContent="Guardar como provisional"}
 });
 $("#proposal-refresh").onclick=async()=>{try{await loadProposals();message("Propuestas actualizadas.","ok")}catch(err){message("No se pudieron cargar las propuestas: "+err.message,"error")}};
+
+$("#proposal-example").onclick=()=>{$("#proposal-json").value=JSON.stringify([{n:"Nombre del establecimiento",t:"ocio",c:"Camping",a:"Dirección por verificar",p:"",e:"",w:"https://ejemplo.es",h:"",s:"",d:"Datos públicos pendientes de verificación",source_name:"Web oficial",source_url:"https://ejemplo.es",notes:"Ejemplo: sustituir por datos reales antes de importar"}],null,2)};
+$("#proposal-import").onclick=async()=>{
+ if(!user){message("Inicia sesión antes de importar.","error");return}
+ const btn=$("#proposal-import");btn.disabled=true;btn.textContent="Importando…";
+ try{
+  let batch;try{batch=JSON.parse($("#proposal-json").value)}catch(_){throw new Error("El texto no es JSON válido.")}
+  if(!Array.isArray(batch)||batch.length<1)throw new Error("El JSON debe ser una lista de objetos.")
+  if(batch.length>100)throw new Error("El lote supera el máximo de 100 fichas. Divídelo en varios lotes.")
+  const cleanUrl=(v)=>{const s=String(v||"").trim();if(!s)return null;let u;try{u=new URL(s)}catch(_){throw new Error("URL no válida: "+s)}if(!["http:","https:"].includes(u.protocol))throw new Error("Solo se admiten URLs http/https.");return u.href};
+  const seen=new Set(), rows=[];
+  const existing=new Set(proposals.filter(p=>p.status==="pending").map(p=>{const f=proposalFields(p);return [String(f.n||"").trim().toLocaleLowerCase("es"),String(f.a||"").trim().toLocaleLowerCase("es")].join("|")}));
+  for(let i=0;i<batch.length;i++){
+   const item=batch[i];if(!item||typeof item!=="object"||Array.isArray(item))throw new Error("La ficha "+(i+1)+" no es un objeto.")
+   const n=String(item.n||item.nombre||"").trim(),c=String(item.c||item.categoria||"").trim();
+   if(!n||!c)throw new Error("La ficha "+(i+1)+" necesita nombre (n) y categoría (c).")
+   if(n.length>180||c.length>100)throw new Error("Nombre o categoría demasiado largos en la ficha "+(i+1)+".")
+   const a=String(item.a||item.direccion||"").trim(),key=[n.toLocaleLowerCase("es"),a.toLocaleLowerCase("es")].join("|");
+   if(seen.has(key)||existing.has(key))continue;seen.add(key);
+   const t=String(item.t||"negocio").toLowerCase()==="ocio"?"ocio":"negocio";
+   const fields={n,t,c,a,p:String(item.p||"").trim(),e:String(item.e||"").trim(),w:cleanUrl(item.w||item.web),h:String(item.h||"").trim(),s:String(item.s||""),d:String(item.d||item.descripcion||"").trim(),lat:null,lon:null};
+   rows.push({fields,source_name:String(item.source_name||item.fuente||"").trim()||null,source_url:cleanUrl(item.source_url||item.url_fuente),source_checked_at:item.source_checked_at||null,notes:String(item.notes||item.notas||"").trim()||null,status:"pending",created_by:user.id});
+  }
+  if(!rows.length)throw new Error("No hay fichas nuevas para importar: todas parecen duplicadas entre sí o con propuestas pendientes.")
+  const {error}=await client.from("listing_proposals").insert(rows);if(error)throw error;
+  $("#proposal-json").value="";await loadProposals();message("Importadas "+rows.length+" fichas como provisionales privadas. No se ha publicado ninguna.", "ok");
+ }catch(err){message("No se pudo importar el lote: "+(err.message||"error desconocido"),"error")}
+ finally{btn.disabled=false;btn.textContent="Importar como provisionales"}
+};
+
 
 $("#category-form").addEventListener("submit",async e=>{
  e.preventDefault();if(!user)return;
