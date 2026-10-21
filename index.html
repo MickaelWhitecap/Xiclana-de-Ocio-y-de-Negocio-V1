@@ -363,7 +363,7 @@ footer{margin-top:3.5rem;padding:2rem 1rem;line-height:1.7}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <script>
-let SEED=[],LIM=120;
+let SEED=[],LIM=120,CATEGORIAS_DB=[];
 const CATS=["Hoteles","Apartamentos turísticos","Supermercados","Farmacias","Talleres mecánicos","Peluquerías","Inmobiliarias","Gestorías","Abogados","Clínicas","Gimnasios","Ferreterías","Panaderías","Bodegas y vinos","Tiendas de ropa","Colegios","Clubes náuticos","Alquiler de coches"];
 const $=s=>document.querySelector(s),el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const map=s=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(s+" Chiclana de la Frontera 11130");
@@ -385,7 +385,7 @@ function pintarDest(){const a=activos().map((d,i)=>({d,l:d.lado?String(d.lado).t
 const s=$("#dest-strip");s.textContent="";a.forEach(x=>s.append(tarjetaSp(x.d)));s.hidden=!a.length}
 function render(){
  const all=[...SEED];document.querySelectorAll(".cnt").forEach(e=>{const k=all.filter(x=>x.t===e.dataset.c).length;e.textContent=k.toLocaleString("es-ES")+(k===1?" ficha":" fichas")});const q=$("#q").value.toLowerCase(),t=modo;
- const cs=[...new Set(all.filter(x=>x.t===modo).map(x=>x.c))].sort();const ch=$("#chips");ch.textContent="";
+ const cs=[...new Set([...all.filter(x=>x.t===modo).map(x=>x.c),...CATEGORIAS_DB.filter(x=>x.type===modo).map(x=>x.name)])].filter(Boolean).sort((a,b)=>a.localeCompare(b,"es"));const ch=$("#chips");ch.textContent="";
  [["", "Todas"],...cs.map(c=>[c,c])].forEach(([v,l])=>{const b=el("button","chip"+(cat===v?" on":""),(cat===v?"✓ ":"")+l);b.onclick=()=>{cat=v;render()};ch.append(b)});
  const g=$("#grid");g.textContent="";let n=0;
  all.forEach((x,i)=>{
@@ -416,6 +416,9 @@ async function aplicarCambios(j){
   if(cfg.url&&cfg.anonKey&&window.supabase?.createClient){
    try{
     const sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+    const {data:categorias,error:catError}=await sb.from("listing_categories").select("slug,name,type");
+    if(!catError)CATEGORIAS_DB=categorias||[];
+    else console.warn("No se pudieron cargar las categorías de Supabase:",catError);
     const {data,error}=await sb.from("listing_overrides").select("listing_id,fields,is_new,verified_at");
     if(error)throw error;
     const byId=new Map((data||[]).map(o=>[o.listing_id,o]));
