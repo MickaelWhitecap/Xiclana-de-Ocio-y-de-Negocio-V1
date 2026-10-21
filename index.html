@@ -435,7 +435,7 @@ async function aplicarCambios(j){
   };
   const candidatasRana=items.filter(claveRana);
   if(candidatasRana.length>1){
-    const puntuacion=x=>Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0)+(String(x.id||"").startsWith("manual:")?0.25:0);
+    const puntuacion=x=>(String(x.id||"").startsWith("manual:")?10000:0)+Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0);
     const conservar=candidatasRana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
     items=items.filter(x=>!claveRana(x)||x===conservar);
   }
