@@ -45,6 +45,26 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;backgroun
 </form>
 <div id="category-list" class="muted" style="margin-top:.7rem"></div>
 </section>
+
+<section class="panel" id="proposals-panel">
+ <div class="topline"><div><h2 style="margin:.2rem 0">Fichas provisionales</h2><div class="muted">Las propuestas permanecen privadas. Solo pasan a la web pública cuando las apruebas.</div></div><button id="proposal-refresh" type="button" class="secondary">Actualizar propuestas</button></div>
+ <form id="proposal-form" class="fields" style="margin-top:.8rem">
+  <div><label for="pr-n">Nombre del aparcamiento *</label><input id="pr-n" maxlength="180" required placeholder="Nombre provisional"></div>
+  <div><label for="pr-c">Categoría *</label><input id="pr-c" value="Parking" maxlength="100" required></div>
+  <div><label for="pr-a">Dirección</label><input id="pr-a" maxlength="240"></div>
+  <div><label for="pr-p">Teléfono</label><input id="pr-p" maxlength="100"></div>
+  <div class="wide"><label for="pr-w">Web (si se conoce)</label><input id="pr-w" type="url" maxlength="500" placeholder="https://…"></div>
+  <div class="wide"><label for="pr-h">Horario (si se conoce)</label><input id="pr-h" maxlength="300"></div>
+  <div class="wide"><label for="pr-d">Descripción / datos por comprobar</label><textarea id="pr-d" rows="2" maxlength="3000"></textarea></div>
+  <div><label for="pr-source">Nombre de la fuente</label><input id="pr-source" maxlength="200" placeholder="Ayuntamiento, web oficial…"></div>
+  <div><label for="pr-url">URL de la fuente</label><input id="pr-url" type="url" maxlength="1000" placeholder="https://…"></div>
+  <div><label for="pr-date">Fecha de comprobación</label><input id="pr-date" type="date"></div>
+  <div><label for="pr-notes">Notas internas</label><input id="pr-notes" maxlength="1000" placeholder="Qué falta verificar"></div>
+  <div class="wide actions"><button id="proposal-save" type="submit">Guardar como provisional</button></div>
+ </form>
+ <h3>Propuestas pendientes</h3><div id="proposal-list" class="muted">Cargando propuestas…</div>
+</section>
+
 <datalist id="category-options"></datalist>
 <div class="grid">
 <aside class="panel"><label for="search">Buscar ficha por nombre, categoría o dirección</label><input id="search" type="search" placeholder="Ej. restaurante, calle…"><div id="count" class="muted"></div><div id="list"></div></aside>
@@ -79,7 +99,7 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;backgroun
 "use strict";
 const $=s=>document.querySelector(s), status=$("#status"), login=$("#login"), app=$("#app"), logout=$("#logout"), form=$("#record-form"), list=$("#list");
 const config=window.XICLANA_SUPABASE||{};
-let client=null,user=null,baseItems=[],overrides=[],categories=[],selectedId=null,isNew=false,visibleItems=[];
+let client=null,user=null,baseItems=[],overrides=[],categories=[],proposals=[],selectedId=null,isNew=false,visibleItems=[];
 const fieldNames=["n","t","c","a","p","e","w","h","s","d","lat","lon"];
 function message(text,type=""){status.textContent=text;status.className="status"+(type?" "+type:"");status.classList.remove("hidden")}
 function showLogin(){login.classList.remove("hidden");app.classList.add("hidden");logout.classList.add("hidden")}
@@ -116,8 +136,67 @@ async function loadData(){
  baseItems=(data.items||[]).map(x=>({...x}));overrides=overrideRes.data||[];
  const categoryRes=await client.from("listing_categories").select("slug,name,type,created_at").order("name");
  if(categoryRes.error)throw new Error("No se pudieron cargar las categorías. Comprueba que has ejecutado supabase-categories.sql en Supabase: "+categoryRes.error.message);
- categories=categoryRes.data||[];renderCategories();refreshList();
+ categories=categoryRes.data||[];renderCategories();refreshList();await loadProposals();
 }
+
+function proposalFields(p){return p.fields&&typeof p.fields==="object"?p.fields:{}}
+function renderProposals(){
+ const root=$("#proposal-list");root.textContent="";
+ const pending=proposals.filter(p=>p.status==="pending").sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+ if(!pending.length){root.textContent="No hay propuestas pendientes.";return}
+ pending.forEach(p=>{
+  const card=document.createElement("div");card.className="item";card.style.marginBottom=".5rem";
+  const f=proposalFields(p),title=document.createElement("strong");title.textContent=f.n||"Propuesta sin nombre";card.append(title);
+  const detail=document.createElement("small");detail.textContent=[f.c||"Sin categoría",f.a||"Sin dirección",p.source_name||"Fuente no indicada",p.source_checked_at||"Sin fecha de comprobación"].join(" · ");card.append(detail);
+  if(p.source_url){const a=document.createElement("a");a.href=p.source_url;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Abrir fuente";a.style.display="inline-block";a.style.marginTop=".35rem";card.append(a)}
+  if(p.notes){const n=document.createElement("small");n.textContent="Nota interna: "+p.notes;card.append(n)}
+  const actions=document.createElement("div");actions.className="actions";
+  const approve=document.createElement("button");approve.type="button";approve.textContent="Aprobar y publicar";approve.onclick=()=>reviewProposal(p,"approved");actions.append(approve);
+  const reject=document.createElement("button");reject.type="button";reject.className="danger";reject.textContent="Descartar";reject.onclick=()=>reviewProposal(p,"rejected");actions.append(reject);
+  card.append(actions);root.append(card);
+ });
+}
+async function loadProposals(){
+ const {data,error}=await client.from("listing_proposals").select("*").order("created_at",{ascending:false});
+ if(error)throw error;proposals=data||[];renderProposals();
+}
+async function reviewProposal(p,nextStatus){
+ const f={...proposalFields(p)};
+ if(nextStatus==="approved"){
+  const name=String(f.n||"").trim().toLocaleLowerCase("es"),address=String(f.a||"").trim().toLocaleLowerCase("es");
+  const duplicate=effectiveItems().find(x=>String(x.n||"").trim().toLocaleLowerCase("es")===name && (!address||String(x.a||"").trim().toLocaleLowerCase("es")===address));
+  if(duplicate){message("No se puede publicar automáticamente: ya existe una ficha con ese nombre y dirección. Revisa la ficha existente antes de continuar.","error");return}
+  if(!f.n||!f.c){message("La propuesta necesita nombre y categoría antes de publicarse.","error");return}
+  f.t=f.t||"negocio";f.f="Verificado por Xiclana";f.v=new Date().toISOString().slice(0,10);
+  const id="manual:"+crypto.randomUUID();
+  const {error:saveError}=await client.from("listing_overrides").upsert({listing_id:id,fields:f,is_new:true,verified_at:new Date().toISOString(),updated_at:new Date().toISOString(),updated_by:user.id},{onConflict:"listing_id"});
+  if(saveError){message("No se pudo publicar la ficha: "+saveError.message,"error");return}
+  const known=categories.some(c=>c.name.toLocaleLowerCase("es")===String(f.c).toLocaleLowerCase("es"));
+  if(!known){
+   const {data:cat,error:catError}=await client.from("listing_categories").upsert({slug:slugify(f.c),name:f.c,type:f.t,created_by:user.id},{onConflict:"slug"}).select("slug,name,type,created_at").single();
+   if(catError){message("La ficha se guardó, pero no se pudo registrar la categoría: "+catError.message,"error");return}
+   categories=categories.filter(c=>c.slug!==cat.slug);categories.push(cat);
+  }
+ }
+ const {error}=await client.from("listing_proposals").update({status:nextStatus,reviewed_at:new Date().toISOString(),reviewed_by:user.id,review_notes:nextStatus==="approved"?"Aprobada y enviada al directorio público":"Descartada desde Administración"}).eq("id",p.id);
+ if(error){message("La ficha se revisó parcialmente, pero no se pudo actualizar el estado de la propuesta: "+error.message,"error");return}
+ await loadData();await loadProposals();
+ message(nextStatus==="approved"?"Propuesta aprobada y ficha publicada.":"Propuesta descartada. No se ha publicado.","ok");
+}
+$("#proposal-form").addEventListener("submit",async e=>{
+ e.preventDefault();if(!user)return;
+ const btn=$("#proposal-save");btn.disabled=true;btn.textContent="Guardando…";
+ try{
+  const fields={n:$("#pr-n").value.trim(),t:"negocio",c:$("#pr-c").value.trim(),a:$("#pr-a").value.trim(),p:$("#pr-p").value.trim(),e:"",w:$("#pr-w").value.trim(),h:$("#pr-h").value.trim(),s:"",d:$("#pr-d").value.trim(),lat:null,lon:null};
+  if(!fields.n||!fields.c)throw new Error("El nombre y la categoría son obligatorios.");
+  const row={fields,source_name:$("#pr-source").value.trim()||null,source_url:$("#pr-url").value.trim()||null,source_checked_at:$("#pr-date").value||null,notes:$("#pr-notes").value.trim()||null,status:"pending",created_by:user.id};
+  const {error}=await client.from("listing_proposals").insert(row);if(error)throw error;
+  $("#proposal-form").reset();$("#pr-c").value="Parking";await loadProposals();message("Propuesta guardada como privada. No aparece en la web hasta aprobarla.","ok");
+ }catch(err){message("No se pudo guardar la propuesta: "+(err.message||"error desconocido"),"error")}
+ finally{btn.disabled=false;btn.textContent="Guardar como provisional"}
+});
+$("#proposal-refresh").onclick=async()=>{try{await loadProposals();message("Propuestas actualizadas.","ok")}catch(err){message("No se pudieron cargar las propuestas: "+err.message,"error")}};
+
 $("#category-form").addEventListener("submit",async e=>{
  e.preventDefault();if(!user)return;
  const btn=$("#category-save"),name=$("#category-name").value.trim(),type=$("#category-type").value,slug=slugify(name);
