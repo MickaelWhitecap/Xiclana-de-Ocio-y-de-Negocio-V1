@@ -446,7 +446,11 @@ async function aplicarCambios(j){
     items=items.filter(x=>!claveRana(x));
     items.push(conservar);
   }
-  // Camping pertenece a Ocio: evitar que fichas o categorías lo muestren también en Negocio.\n  items=items.map(x=>String(x.c||"").normalize("NFD").replace(/\\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"?({...x,t:"ocio"}):x);\n  CATEGORIAS_DB=CATEGORIAS_DB.filter(x=>!(String(x.name||"").normalize("NFD").replace(/\\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"&&String(x.type||"").toLowerCase()==="negocio"));\n  SEED=items;DEST=j.destacados||{};pintarDest();
+  // Camping y Nautica pertenecen a Ocio: evitar que aparezcan en Negocio.
+  const normalizarCategoria=v=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
+  items=items.map(x=>["camping","nautica"].includes(normalizarCategoria(x.c))?({...x,t:"ocio"}):x);
+  CATEGORIAS_DB=CATEGORIAS_DB.filter(x=>!(["camping","nautica"].includes(normalizarCategoria(x.name))&&normalizarCategoria(x.type)==="negocio"));
+  SEED=items;DEST=j.destacados||{};pintarDest();
   $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
   render();
  }
