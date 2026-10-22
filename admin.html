@@ -73,6 +73,10 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;backgroun
  <h3>Propuestas pendientes</h3><div id="proposal-list" class="muted">Cargando propuestas…</div>
 </section>
 
+<section class="panel" id="trash-panel">
+<div class="topline"><div><h2 style="margin:.2rem 0">Papelera de fichas</h2><div class="muted">Las fichas eliminadas se conservan aquí y se pueden restaurar sin reconstruirlas.</div></div><button id="trash-refresh" type="button" class="secondary">Actualizar papelera</button></div>
+<div id="trash-list" style="margin-top:.7rem"><span class="muted">Cargando papelera…</span></div>
+</section>
 <datalist id="category-options"></datalist>
 <div class="grid">
 <aside class="panel"><label for="search">Buscar ficha por nombre, categoría o dirección</label><input id="search" type="search" placeholder="Ej. restaurante, calle…"><div id="count" class="muted"></div><div id="list"></div></aside>
@@ -127,6 +131,28 @@ function effectiveItems(){
  }
  return out;
 }
+function deletedItems(){
+ const deleted=overrides.filter(o=>o.fields&&o.fields._xiclana_deleted===true);
+ return deleted.map(o=>{const base=baseItems.find(x=>stableId(x)===o.listing_id);return base?({...base,id:o.listing_id,is_new:false}):({...o.fields,id:o.listing_id,is_new:Boolean(o.is_new)});}).sort((a,b)=>String(a.n||"").localeCompare(String(b.n||""),"es"));
+}
+function renderTrash(){
+ const root=$("#trash-list");root.textContent="";const items=deletedItems();
+ if(!items.length){root.textContent="La papelera está vacía.";return}
+ items.forEach(item=>{const card=document.createElement("div");card.className="item";card.style.marginBottom=".5rem";const title=document.createElement("strong");title.textContent=item.n||"Ficha sin nombre";card.append(title);const detail=document.createElement("small");detail.textContent=[item.c||"Sin categoría",item.a||"Sin dirección",item.is_new?"Ficha creada manualmente":"Ficha original"].join(" · ");card.append(detail);const actions=document.createElement("div");actions.className="actions";const restore=document.createElement("button");restore.type="button";restore.textContent="Restaurar ficha";restore.onclick=()=>restoreItem(item.id);actions.append(restore);card.append(actions);root.append(card)});
+}
+async function restoreItem(id){
+ const item=deletedItems().find(x=>x.id===id);if(!item)return;
+ if(!confirm("¿Restaurar «"+(item.n||"esta ficha")+"»? Volverá a aparecer en la web pública."))return;
+ const btn=[...$("#trash-list").querySelectorAll("button")].find(b=>b.textContent==="Restaurar ficha");if(btn){btn.disabled=true;btn.textContent="Restaurando…"}
+ try{
+  const existing=overrides.find(o=>o.listing_id===id);if(!existing)throw new Error("No se encuentra el registro de ocultación en Supabase.");
+  const fields={...(existing.fields||{})};delete fields._xiclana_deleted;
+  const now=new Date().toISOString();
+  const {error}=await client.from("listing_overrides").upsert({listing_id:id,fields,is_new:Boolean(existing.is_new),verified_at:existing.verified_at||now,updated_at:now,updated_by:user.id},{onConflict:"listing_id"});
+  if(error)throw error;
+  await loadData();message("Ficha «"+(item.n||"") +"» restaurada. Ya puede volver a mostrarse en la web pública.","ok");
+ }catch(err){message("No se pudo restaurar la ficha: "+(err.message||"error desconocido"),"error");if(btn){btn.disabled=false;btn.textContent="Restaurar ficha"}}
+}
 function slugify(value){return value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
 function renderCategories(){
  const names=new Map();
@@ -152,7 +178,7 @@ async function loadData(){
  baseItems=(data.items||[]).map(x=>({...x}));overrides=overrideRes.data||[];
  const categoryRes=await client.from("listing_categories").select("slug,name,type,created_at").order("name");
  if(categoryRes.error)throw new Error("No se pudieron cargar las categorías. Comprueba que has ejecutado supabase-categories.sql en Supabase: "+categoryRes.error.message);
- categories=categoryRes.data||[];renderCategories();refreshList();await loadProposals();
+ categories=categoryRes.data||[];renderCategories();refreshList();renderTrash();await loadProposals();
 }
 
 function proposalFields(p){return p.fields&&typeof p.fields==="object"?p.fields:{}}
@@ -284,7 +310,7 @@ form.addEventListener("submit",async e=>{
 });
 $("#login-form").addEventListener("submit",async e=>{e.preventDefault();const btn=$("#login-button");btn.disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$("#email").value.trim(),password:$("#password").value});if(error)throw error;user=data.user;showApp();await loadData();message("Sesión iniciada. Solo la cuenta autorizada puede guardar cambios.","ok")}catch(err){message("No se pudo iniciar sesión: "+(err.message||"revisa el correo y la contraseña."),"error")}finally{btn.disabled=false}});
 logout.onclick=async()=>{await client.auth.signOut();user=null;showLogin();message("Sesión cerrada.")};
-$("#search").addEventListener("input",refreshList);$("#new-record").onclick=startNew;$("#cancel").onclick=cancelEdit;
+$("#search").addEventListener("input",refreshList);$("#new-record").onclick=startNew;$("#cancel").onclick=cancelEdit;$("#trash-refresh").onclick=async()=>{try{await loadData();message("Papelera actualizada.","ok")}catch(err){message("No se pudo actualizar la papelera: "+err.message,"error")}};
  $("#delete-button").onclick=async()=>{
   if(!user||!selectedId||String(selectedId).startsWith("new:"))return;
   const item=effectiveItems().find(x=>x.id===selectedId);if(!item)return;
