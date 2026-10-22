@@ -92,7 +92,7 @@ button,.button{font:inherit;font-weight:700;border:0;border-radius:9px;backgroun
 <div><label for="lat">Latitud (opcional)</label><input id="lat" name="lat" type="number" step="any"></div>
 <div><label for="lon">Longitud (opcional)</label><input id="lon" name="lon" type="number" step="any"></div>
 <div class="wide muted">Al guardar, la ficha quedará marcada como verificada por Xiclana con la fecha de hoy. Comprueba que los datos se han recogido correctamente antes de publicarlos.</div>
-<div class="wide actions"><button id="save-button" type="submit">Guardar ficha</button><button id="cancel" type="button" class="secondary">Cancelar</button></div>
+<div class="wide actions"><button id="save-button" type="submit">Guardar ficha</button><button id="delete-button" type="button" class="danger">Eliminar ficha</button><button id="cancel" type="button" class="secondary">Cancelar</button></div>
 </form>
 <div id="empty-editor" class="muted">Elige una ficha de la lista o pulsa «Nueva ficha».</div>
 </section>
@@ -115,8 +115,8 @@ function showApp(){login.classList.add("hidden");app.classList.remove("hidden");
 function stableId(x){if(x.id)return String(x.id);return "legacy:"+[x.n,x.t,x.a].map(v=>String(v||"").trim().toLowerCase()).join("|")}
 function effectiveItems(){
  const byId=new Map(overrides.map(o=>[o.listing_id,o]));
- let out=baseItems.map(x=>{const id=stableId(x),o=byId.get(id);return {...x,id,...(o?.fields||{}),id,verified_at:o?.verified_at||null,is_new:false}});
- overrides.filter(o=>o.is_new).forEach(o=>{if(!baseItems.some(x=>stableId(x)===o.listing_id))out.push({...o.fields,id:o.listing_id,verified_at:o.verified_at,is_new:true})});
+ let out=baseItems.filter(x=>!byId.get(stableId(x))?.fields?._xiclana_deleted).map(x=>{const id=stableId(x),o=byId.get(id);return {...x,id,...(o?.fields||{}),id,verified_at:o?.verified_at||null,is_new:false}});
+ overrides.filter(o=>o.is_new&&!o.fields?._xiclana_deleted).forEach(o=>{if(!baseItems.some(x=>stableId(x)===o.listing_id))out.push({...o.fields,id:o.listing_id,verified_at:o.verified_at,is_new:true})});
  // En la administración, agrupar las variantes del mismo Camping La Rana Verde sin borrar registros de la base de datos.
  const claveRana=x=>String(x.n||x.nombre||x.name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().includes("rana verde");
  const rana=out.filter(claveRana);
@@ -142,8 +142,8 @@ function refreshList(){
  list.textContent="";$("#count").textContent=matches.length+" fichas";
  matches.forEach(x=>{const b=document.createElement("button");b.type="button";b.className="item"+(x.id===selectedId?" active":"");b.append(document.createTextNode(x.n||"Sin nombre"));const small=document.createElement("small");small.textContent=(x.c||"Sin categoría")+" · "+(x.a||"Sin dirección");b.append(small);if(x.verified_at){const p=document.createElement("span");p.className="pill";p.textContent="Verificada";b.append(p)}b.onclick=()=>selectItem(x.id);list.append(b)});
 }
-function selectItem(id){const x=effectiveItems().find(v=>v.id===id);if(!x)return;selectedId=id;isNew=!!x.is_new;$("#form-title").textContent=x.n;$("#record-meta").textContent=x.verified_at?"Última verificación: "+new Date(x.verified_at).toLocaleString("es-ES"):"Ficha de directorio";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");fieldNames.forEach(k=>{const input=form.elements[k];input.value=x[k]??""});refreshList()}
-function startNew(){selectedId="new:"+crypto.randomUUID();isNew=true;$("#form-title").textContent="Nueva ficha";$("#record-meta").textContent="Se añadirá al directorio público";$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");form.reset();$("#t").value="negocio";refreshList()}
+function selectItem(id){const x=effectiveItems().find(v=>v.id===id);if(!x)return;selectedId=id;isNew=!!x.is_new;$("#form-title").textContent=x.n;$("#record-meta").textContent=x.verified_at?"Última verificación: "+new Date(x.verified_at).toLocaleString("es-ES"):"Ficha de directorio";$("#delete-button").disabled=false;$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");fieldNames.forEach(k=>{const input=form.elements[k];input.value=x[k]??""});refreshList()}
+function startNew(){selectedId="new:"+crypto.randomUUID();isNew=true;$("#form-title").textContent="Nueva ficha";$("#record-meta").textContent="Se añadirá al directorio público";$("#delete-button").disabled=true;$("#empty-editor").classList.add("hidden");form.classList.remove("hidden");form.reset();$("#t").value="negocio";refreshList()}
 function cancelEdit(){selectedId=null;isNew=false;form.classList.add("hidden");$("#empty-editor").classList.remove("hidden");$("#form-title").textContent="Selecciona una ficha";$("#record-meta").textContent="";refreshList()}
 async function loadData(){
  const [dataRes,overrideRes]=await Promise.all([fetch("./data.json",{cache:"no-store"}),client.from("listing_overrides").select("listing_id,fields,is_new,verified_at,updated_at")]);
@@ -285,6 +285,22 @@ form.addEventListener("submit",async e=>{
 $("#login-form").addEventListener("submit",async e=>{e.preventDefault();const btn=$("#login-button");btn.disabled=true;try{const {data,error}=await client.auth.signInWithPassword({email:$("#email").value.trim(),password:$("#password").value});if(error)throw error;user=data.user;showApp();await loadData();message("Sesión iniciada. Solo la cuenta autorizada puede guardar cambios.","ok")}catch(err){message("No se pudo iniciar sesión: "+(err.message||"revisa el correo y la contraseña."),"error")}finally{btn.disabled=false}});
 logout.onclick=async()=>{await client.auth.signOut();user=null;showLogin();message("Sesión cerrada.")};
 $("#search").addEventListener("input",refreshList);$("#new-record").onclick=startNew;$("#cancel").onclick=cancelEdit;
+ $("#delete-button").onclick=async()=>{
+  if(!user||!selectedId||String(selectedId).startsWith("new:"))return;
+  const item=effectiveItems().find(x=>x.id===selectedId);if(!item)return;
+  if(!confirm(`¿Eliminar «${item.n||"esta ficha"}» del directorio público? La ficha original no se borrará de data.json; quedará marcada como oculta en Supabase.`))return;
+  const btn=$("#delete-button");btn.disabled=true;btn.textContent="Eliminando…";
+  try{
+   const existing=overrides.find(o=>o.listing_id===selectedId);
+   const fields={...(existing?.fields||{}),_xiclana_deleted:true};
+   const now=new Date().toISOString();
+   const {error}=await client.from("listing_overrides").upsert({listing_id:selectedId,fields,is_new:Boolean(item.is_new),verified_at:existing?.verified_at||item.verified_at||now,updated_at:now,updated_by:user.id},{onConflict:"listing_id"});
+   if(error)throw error;
+   selectedId=null;isNew=false;form.classList.add("hidden");$("#empty-editor").classList.remove("hidden");
+   await loadData();message("Ficha eliminada de la web pública. El registro original se conserva.","ok");
+  }catch(err){message("No se pudo eliminar la ficha: "+(err.message||"error desconocido"),"error");btn.disabled=false}
+  finally{btn.textContent="Eliminar ficha"}
+ };
 async function init(){
  if(!config.url||!config.anonKey){message("Falta configurar Supabase. Sigue ADMIN.md en el repositorio V1 para conectar la base de datos y activar el acceso privado.","error");return}
  if(!window.supabase?.createClient){message("No se ha podido cargar la biblioteca de acceso. Recarga la página o inténtalo más tarde.","error");return}
