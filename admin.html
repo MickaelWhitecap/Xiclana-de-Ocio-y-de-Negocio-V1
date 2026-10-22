@@ -163,7 +163,7 @@ function renderProposals(){
  pending.forEach(p=>{
   const card=document.createElement("div");card.className="item";card.style.marginBottom=".5rem";
   const f=proposalFields(p),title=document.createElement("strong");title.textContent=f.n||"Propuesta sin nombre";card.append(title);
-  const detail=document.createElement("small");detail.textContent=[f.c||"Sin categoría",f.a||"Sin dirección",p.source_name||"Fuente no indicada",p.source_checked_at||"Sin fecha de comprobación"].join(" · ");card.append(detail);
+  const detail=document.createElement("small");detail.textContent=[f.t==="ocio"?"Ocio":"Negocio",f.c||"Sin categoría",f.a||"Sin dirección",p.source_name||"Fuente no indicada",p.source_checked_at||"Sin fecha de comprobación"].join(" · ");card.append(detail);
   if(p.source_url){const a=document.createElement("a");a.href=p.source_url;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Abrir fuente";a.style.display="inline-block";a.style.marginTop=".35rem";card.append(a)}
   if(p.notes){const n=document.createElement("small");n.textContent="Nota interna: "+p.notes;card.append(n)}
   const actions=document.createElement("div");actions.className="actions";
