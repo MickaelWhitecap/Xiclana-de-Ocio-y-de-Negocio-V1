@@ -460,7 +460,7 @@ async function aplicarCambios(j){
     }
     const byId=new Map((data||[]).map(o=>[o.listing_id,o]));
     const deletedIds=new Set((data||[]).filter(o=>o.fields?._xiclana_deleted===true).map(o=>String(o.listing_id)));
-    items=items.filter(x=>!deletedIds.has(String(x.id||"")));
+    items=items.filter(x=>!deletedIds.has(String(x.id||"legacy:"+[x.n,x.t,x.a].map(v=>String(v||"").trim().toLowerCase()).join("|"))));
     items=items.map(x=>{const o=byId.get(String(x.id||""));return o?({...x,...(o.fields||{}),id:x.id,seed:1,verified_at:o.verified_at}):x});
     const ids=new Set(items.map(x=>String(x.id||"")));
     (data||[]).filter(o=>o.is_new&&!o.fields?._xiclana_deleted&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
