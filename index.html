@@ -383,8 +383,10 @@ body[data-m=ocio]{--acc:#a8483b}
 <p style="color:var(--mut);font-size:.85rem">Tus altas se guardan en este navegador. Exporta el JSON para conservarlas o pasarlas a otro dispositivo.</p></details></div>
 </main></div><aside class="lado" id="lado-d" aria-label="Espacio destacado"></aside></div>
 <footer><div id="fecha"></div>Datos de © colaboradores de <a href="https://www.openstreetmap.org/copyright" style="color:inherit">OpenStreetMap</a> (licencia ODbL) y del Ayuntamiento de Chiclana, <a href="https://datosabiertos.chiclana.es" style="color:inherit">Portal de Datos Abiertos</a> (licencia ODC-By). Datos orientativos: comprueba horarios y teléfonos antes de ir. Sitio independiente, sin vinculación oficial con el Ayuntamiento.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <script>
-let SEED=[],LIM=120;
+let SEED=[],LIM=120,CATEGORIAS_DB=[];
 const CATS=["Hoteles","Apartamentos turísticos","Supermercados","Farmacias","Talleres mecánicos","Peluquerías","Inmobiliarias","Gestorías","Abogados","Clínicas","Gimnasios","Ferreterías","Panaderías","Bodegas y vinos","Tiendas de ropa","Colegios","Clubes náuticos","Alquiler de coches"];
 let mine=[];try{mine=JSON.parse(localStorage.getItem("chic")||"[]")}catch(e){}
 const save=()=>{try{localStorage.setItem("chic",JSON.stringify(mine))}catch(e){}};
@@ -440,7 +442,50 @@ document.querySelectorAll(".op").forEach(b=>b.onclick=()=>elegir(b.dataset.m));
 $("#f").onsubmit=e=>{e.preventDefault();const d=new FormData(e.target);mine.push({n:d.get("n"),t:d.get("t"),c:d.get("c"),a:d.get("a"),p:d.get("p"),w:d.get("w"),s:d.get("s"),d:d.get("d")});save();e.target.reset();render()};
 $("#exp").onclick=()=>{const s=JSON.stringify(mine,null,1);navigator.clipboard?.writeText(s).then(()=>alert("JSON copiado al portapapeles"),()=>prompt("Copia el JSON:",s))||prompt("Copia el JSON:",s)};
 $("#imp").onclick=()=>{const s=prompt("Pega aquí el JSON exportado:");if(!s)return;try{const a=JSON.parse(s);if(Array.isArray(a)){mine=mine.concat(a.filter(x=>x&&x.n&&x.c&&(x.t==="ocio"||x.t==="negocio")).map(x=>({n:String(x.n),t:x.t,c:String(x.c),a:x.a?String(x.a):"",p:x.p?String(x.p):"",w:x.w?String(x.w):"",s:x.s?String(x.s):"",d:x.d?String(x.d):""})));save();render()}}catch(e){alert("JSON no válido")}};
-fetch("data.json").then(r=>r.json()).then(j=>{SEED=j.items.map(x=>({...x,seed:1}));DEST=j.destacados||{};pintarDest();$("#fecha").textContent="Última actualización automática: "+j.actualizado+" · "+j.items.length+" fichas";render()}).catch(()=>render());
-
-pintarDest();
+async function aplicarCambios(j){
+  let items=(j.items||[]).map(x=>({...x,seed:1}));
+  const cfg=window.XICLANA_SUPABASE||{};
+  if(cfg.url&&cfg.anonKey&&window.supabase?.createClient){
+   try{
+    const sb=window.supabase.createClient(cfg.url,cfg.anonKey);
+    const {data:categorias,error:catError}=await sb.from("listing_categories").select("slug,name,type");
+    if(!catError)CATEGORIAS_DB=(categorias||[]).filter(x=>!(String(x.name||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim()==="camping"&&String(x.type||"").toLowerCase()==="negocio"));
+    else console.warn("No se pudieron cargar las categorías de Supabase:",catError);
+    const data=[];
+    for(let desde=0;;desde+=1000){
+      const {data:pagina,error}=await sb.from("listing_overrides").select("listing_id,fields,is_new,verified_at").range(desde,desde+999);
+      if(error)throw error;
+      data.push(...(pagina||[]));
+      if(!pagina||pagina.length<1000)break;
+    }
+    const byId=new Map((data||[]).map(o=>[o.listing_id,o]));
+    items=items.map(x=>{const o=byId.get(String(x.id||""));return o?({...x,...(o.fields||{}),id:x.id,seed:1,verified_at:o.verified_at}):x});
+    const ids=new Set(items.map(x=>String(x.id||"")));
+    (data||[]).filter(o=>o.is_new&&!ids.has(o.listing_id)).forEach(o=>items.push({...o.fields,id:o.listing_id,seed:1,verified_at:o.verified_at}));
+   }catch(err){console.warn("No se pudieron cargar las fichas verificadas de Supabase:",err)}
+  }
+  // Unificar todas las variantes de La Rana Verde y priorizar la ficha de Ocio.
+  const nombreClave=v=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const claveRana=x=>{
+    const nombre=nombreClave(x.n||x.nombre||x.name||x.title);
+    return nombre.includes("rana verde");
+  };
+  const candidatasRana=items.filter(claveRana);
+  if(candidatasRana.length){
+    const puntuacion=x=>(String(x.t||x.tipo||"").toLowerCase()==="ocio"?100000:0)+(String(x.id||"").startsWith("manual:")?10000:0)+Object.entries(x).reduce((n,[k,v])=>n+(!["id","seed","verified_at"].includes(k)&&v!=null&&String(v).trim()!==""?1:0),0);
+    const mejor=candidatasRana.reduce((best,x)=>puntuacion(x)>puntuacion(best)?x:best);
+    const conservar={...mejor,t:"ocio",c:"Camping"};
+    items=items.filter(x=>!claveRana(x));
+    items.push(conservar);
+  }
+  // Camping y Nautica pertenecen a Ocio: evitar que aparezcan en Negocio.
+  const normalizarCategoria=v=>String(v||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase().trim();
+  items=items.map(x=>["camping","nautica"].includes(normalizarCategoria(x.c))?({...x,t:"ocio"}):x);
+  CATEGORIAS_DB=CATEGORIAS_DB.filter(x=>!(["camping","nautica"].includes(normalizarCategoria(x.name))&&normalizarCategoria(x.type)==="negocio"));
+  SEED=items;DEST=j.destacados||{};pintarDest();
+  $("#fecha").textContent="Datos actualizados: "+j.actualizado+" · "+items.length+" fichas";
+  render();
+ }
+ fetch("data.json").then(r=>{if(!r.ok)throw new Error("No se pudo cargar data.json");return r.json()}).then(aplicarCambios).catch(err=>{console.error(err);render()});
+ const im=new Image();im.onload=()=>{document.querySelector(".hero").classList.add("foto");fetch("fondo.txt").then(r=>r.ok?r.text():"").then(t=>{$("#cr").textContent=t.trim()}).catch(()=>{})};im.src="fondo.jpg";
 </script></body></html>
