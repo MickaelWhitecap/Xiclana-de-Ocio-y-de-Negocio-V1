@@ -94,7 +94,7 @@ class CatalogCaptureTests(unittest.TestCase):
         class Response:
             def __enter__(self): return self
             def __exit__(self, *args): return False
-            def read(self, size=-1): return b"nombre;tipo\\nParking Central;aparcamiento\\n"
+            def read(self, size=-1): return b"nombre;tipo\nParking Central;aparcamiento\n"
         with mock.patch("urllib.request.urlopen", return_value=Response()):
             rows, reason = _structured_resource_rows({
                 "url": "https://example.org/parking.csv",
