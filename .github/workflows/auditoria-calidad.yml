@@ -30,6 +30,13 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Ejecutar simulación sin publicar
         run: python motor_calidad.py --output /tmp/informe-calidad-xiclana.json
+      - name: Guardar informe de simulación como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-calidad-xiclana
+          path: /tmp/informe-calidad-xiclana.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Validar que el informe es de solo lectura
         run: |
           python - <<'PY'
