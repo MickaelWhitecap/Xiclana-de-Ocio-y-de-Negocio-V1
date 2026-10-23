@@ -269,6 +269,31 @@ def capture_openrta() -> list[dict]:
         and x["name"]
     ]
 
+
+def build_unified_records(report: dict) -> list[dict]:
+    """Reúne en una lista común todos los registros capturados, preservando el dato original."""
+    records = []
+    for item in report.get("entities", []):
+        records.append({"record_type": "place_candidate", **item})
+    for item in report.get("official_tourism_candidates", []):
+        records.append({"record_type": "official_tourism_candidate", **item})
+    municipal = report.get("sources", {}).get("municipal_open_data", {})
+    for dataset in municipal.get("datasets", []):
+        records.append({
+            "record_type": "municipal_dataset",
+            "source": municipal.get("source", "Portal municipal CKAN"),
+            **dataset,
+        })
+        for resource in dataset.get("resources", []):
+            records.append({
+                "record_type": "municipal_dataset_resource",
+                "source": municipal.get("source", "Portal municipal CKAN"),
+                "dataset_title": dataset.get("title", ""),
+                "dataset_url": dataset.get("url", ""),
+                **resource,
+            })
+    return records
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default="informe-captura-publica.json",
@@ -304,6 +329,7 @@ def main() -> int:
         "sources": {},
         "entities": [],
         "official_tourism_candidates": [],
+        "records": [],
         "counts_by_category": {},
     }
     errors = []
@@ -343,6 +369,9 @@ def main() -> int:
             }
         except Exception as exc:
             errors.append({"source": "OpenRTA", "error": str(exc)})
+    report["records"] = build_unified_records(report)
+    report["records_found"] = len(report["records"])
+    report["counts_by_record_type"] = dict(Counter(x.get("record_type", "unknown") for x in report["records"]))
     report["counts_by_category"] = dict(Counter(x["category"] for x in report["entities"]))
     report["entities_found"] = len(report["entities"])
     report["errors"] = errors
@@ -354,6 +383,7 @@ def main() -> int:
         "counts_by_category": report["counts_by_category"],
         "municipal_datasets_found": report.get("sources", {}).get("municipal_open_data", {}).get("datasets_found"),
         "openrta_candidates_found": len(report.get("official_tourism_candidates", [])),
+        "records_found": report.get("records_found", 0),
         "errors": errors,
         "production_data_modified": False,
         "supabase_modified": False,
