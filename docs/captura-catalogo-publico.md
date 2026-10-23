@@ -28,7 +28,13 @@ python capturar_catalogo_publico.py --skip-overpass --output informe-fuentes-mun
 Para probar solamente OpenStreetMap:
 
 ```bash
-python capturar_catalogo_publico.py --skip-municipal --output informe-osm.json
+python capturar_catalogo_publico.py --skip-municipal --skip-openrta --output informe-osm.json
+```
+
+Para probar solo el registro turístico oficial:
+
+```bash
+python capturar_catalogo_publico.py --skip-overpass --skip-municipal --output informe-openrta.json
 ```
 
 Respeta los límites de los servicios, no ejecutes repetidamente consultas grandes y conserva la atribución a OpenStreetMap. Si Overpass está saturado, vuelve a intentarlo más tarde.
@@ -36,6 +42,8 @@ Respeta los límites de los servicios, no ejecutes repetidamente consultas grand
 ## Salida
 
 El JSON incluye:
+- candidatos turísticos oficiales de OpenRTA en `official_tourism_candidates`, separados de los objetos OSM;
+- fuente y licencia de OpenRTA, con atribución a la Junta de Andalucía;
 - fecha y hora UTC de la captura;
 - número de objetos con nombre por categoría;
 - campos públicos disponibles (nombre, categoría, dirección, teléfono, correo, web, horario y coordenadas);
