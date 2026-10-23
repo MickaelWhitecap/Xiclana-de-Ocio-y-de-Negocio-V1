@@ -272,17 +272,29 @@ def discover_municipal_datasets() -> dict:
 
     datasets = []
     relevance_terms = (
-        "instalacion", "cultura", "deport", "asociacion", "mercad", "turis",
-        "interes", "evento", "callejero", "educacion", "salud", "aparc",
-        "parking", "camping", "ocio", "playa", "hostel", "alojamiento",
-        "comercio", "transporte", "parque", "jardin", "museo", "monumento",
+        "instalacion", "cultura", "deport", "asociacion", "mercad",
+        "lugar de interes", "evento", "callejero", "educacion", "salud",
+        "aparc", "parking", "camping", "ocio", "playa", "hostel",
+        "alojamiento", "comercio", "transporte", "parque", "jardin",
+        "museo", "monumento", "centro educativo", "academia de musica",
+    )
+    excluded_terms = (
+        "estadistica", "estadisticas", "flujo turistico", "flujos turisticos",
+        "visitantes", "consultas de oficina", "contratacion", "presupuesto",
+        "presupuestos", "padron", "poblacion", "ocupacion portal",
     )
     for ds in found.values():
         title = str(ds.get("title", ""))
-        resource_meta = " ".join(str(r.get("name", "")) for r in ds.get("resources", []))
-        searchable = unicodedata.normalize("NFKD", (title + " " + resource_meta).casefold())
-        searchable = "".join(ch for ch in searchable if not unicodedata.combining(ch))
-        is_relevant = any(term in searchable for term in relevance_terms)
+        resource_meta = " ".join(str(r.get("name", "") for r in ds.get("resources", [])))
+        def normalize_search(value):
+            plain = unicodedata.normalize("NFKD", value.casefold())
+            return "".join(ch for ch in plain if not unicodedata.combining(ch))
+        normalized_title = normalize_search(title)
+        searchable = normalize_search(title + " " + resource_meta)
+        # La exclusión se aplica primero al título del conjunto para que un recurso
+        # con nombre genérico no convierta estadísticas en candidatos a fichas.
+        excluded = any(term in normalized_title for term in excluded_terms)
+        is_relevant = not excluded and any(term in searchable for term in relevance_terms)
         resources = []
         for resource in ds.get("resources", []):
             resources.append({
