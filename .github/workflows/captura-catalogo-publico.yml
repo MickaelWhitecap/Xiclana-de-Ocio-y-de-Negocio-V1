@@ -13,51 +13,121 @@ permissions:
   contents: read
 
 jobs:
-  captura:
+  catalogo-municipal:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - name: Descargar código de la rama de trabajo
-        uses: actions/checkout@v4
-      - name: Preparar Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Validar sintaxis y pruebas unitarias
         run: |
           python -m py_compile capturar_catalogo_publico.py
           python -m unittest tests.test_capturar_catalogo_publico -v
-      - name: Ejecutar captura exploratoria de solo lectura
-        id: captura
-        continue-on-error: true
-        run: |
-          python capturar_catalogo_publico.py --output informe-captura-publica.json
-      - name: Publicar el informe como artefacto descargable
+      - name: Inventariar catálogo municipal
+        run: python capturar_catalogo_publico.py --skip-overpass --output informe-municipal.json
+      - name: Guardar inventario municipal
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-municipal
+          path: informe-municipal.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  openstreetmap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Capturar candidatos de OpenStreetMap
+        run: python capturar_catalogo_publico.py --skip-municipal --output informe-osm.json
+        continue-on-error: true
+      - name: Guardar captura de OpenStreetMap
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-osm
+          path: informe-osm.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  reunir-informe:
+    runs-on: ubuntu-latest
+    needs: [catalogo-municipal, openstreetmap]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Descargar informes parciales
+        uses: actions/download-artifact@v4
+        with:
+          pattern: captura-*
+          path: parciales
+          merge-multiple: false
+      - name: Combinar informe final
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          base = {
+              "report_type": "exploratory_public_data_capture",
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "municipality": "Chiclana de la Frontera, Cádiz, España",
+              "mode": "read_only",
+              "production_data_modified": False,
+              "supabase_modified": False,
+              "google_maps_scraping": False,
+              "entities": [],
+              "sources": {},
+              "errors": [],
+              "limitations": [
+                  "OpenStreetMap no es exhaustivo y depende de los datos cartografiados.",
+                  "Los conjuntos municipales requieren revisión de licencia por recurso antes de reutilizar filas.",
+                  "No se infiere cierre por ausencia de una fuente.",
+                  "Los resultados son candidatos, no fichas aprobadas ni publicaciones automáticas."
+              ]
+          }
+          for path in Path("parciales").glob("*/*.json"):
+              try:
+                  report = json.loads(path.read_text(encoding="utf-8"))
+              except Exception as exc:
+                  base["errors"].append({"source": str(path), "error": str(exc)})
+                  continue
+              base["sources"].update(report.get("sources", {}))
+              base["entities"].extend(report.get("entities", []))
+              base["errors"].extend(report.get("errors", []))
+          seen = {}
+          for entity in base["entities"]:
+              key = (entity.get("osm_type"), entity.get("osm_id"))
+              seen[key] = entity
+          base["entities"] = list(seen.values())
+          base["entities_found"] = len(base["entities"])
+          base["counts_by_category"] = dict(Counter(e.get("category", "Sin categoría") for e in base["entities"]))
+          municipal = base["sources"].get("municipal_open_data", {})
+          base["municipal_datasets_found"] = municipal.get("datasets_found", 0)
+          Path("informe-captura-publica.json").write_text(
+              json.dumps(base, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+          )
+          print("Entidades candidatas OSM:", base["entities_found"])
+          print("Conjuntos municipales:", base["municipal_datasets_found"])
+          print("Categorías:", json.dumps(base["counts_by_category"], ensure_ascii=False))
+          print("Errores:", json.dumps(base["errors"], ensure_ascii=False))
+          print("Web pública y Supabase modificados: no")
+          PY
+      - name: Publicar informe final descargable
         uses: actions/upload-artifact@v4
         with:
           name: informe-captura-publica
           path: informe-captura-publica.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
-      - name: Mostrar resumen de captura
-        if: always()
-        run: |
-          if [ -f informe-captura-publica.json ]; then
-            python - <<'PY'
-          import json
-          with open("informe-captura-publica.json", encoding="utf-8") as f:
-              r = json.load(f)
-          print("Entidades candidatas:", r.get("entities_found", 0))
-          print("Categorías:", json.dumps(r.get("counts_by_category", {}), ensure_ascii=False))
-          print("Fuentes:", ", ".join(r.get("sources", {}).keys()))
-          print("Errores:", json.dumps(r.get("errors", []), ensure_ascii=False))
-          print("Datos públicos modificados:", r.get("production_data_modified", False))
-          print("Supabase modificado:", r.get("supabase_modified", False))
-          PY
-          else
-            echo "No se generó informe; revisar el paso de captura."
-          fi
-      - name: Marcar error si falló alguna fuente
-        if: steps.captura.outcome == 'failure'
-        run: exit 1
