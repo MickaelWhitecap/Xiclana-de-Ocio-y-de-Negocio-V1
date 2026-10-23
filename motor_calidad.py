@@ -174,7 +174,9 @@ def compare_records(a: dict, b: dict) -> dict | None:
     exact_name = normalize(a.get("n")) == normalize(b.get("n")) and bool(normalize(a.get("n")))
     if not (strong or (similarity >= 0.88 and location_support) or (exact_name and location_support)):
         return None
-    confidence = 96 if strong and (similarity >= 0.55 or location_support) else 90 if strong else 84 if exact_name else 75
+    # A shared phone/domain/email is enough to raise a review candidate even if names differ.
+    # It is not enough to auto-merge: every result remains review-only during this pilot.
+    confidence = 96 if strong and (similarity >= 0.55 or location_support) else 88 if strong else 84 if exact_name else 75
     if len(signals) >= 2:
         confidence = min(99, confidence + 3)
     return {
