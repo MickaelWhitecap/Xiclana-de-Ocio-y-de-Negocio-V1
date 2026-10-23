@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -200,10 +201,14 @@ def _as_records(payload) -> list[dict]:
 
 
 def _field(record: dict, *names: str) -> str:
-    """Obtiene el primer campo no vacío, tolerando mayúsculas y nombres con espacios."""
-    normalized = {re.sub(r"[^a-z0-9]", "", str(k).casefold()): v for k, v in record.items()}
+    """Obtiene el primer campo no vacío, tolerando tildes, mayúsculas y espacios."""
+    def key(value: object) -> str:
+        plain = unicodedata.normalize("NFKD", str(value).casefold())
+        plain = "".join(ch for ch in plain if not unicodedata.combining(ch))
+        return re.sub(r"[^a-z0-9]", "", plain)
+    normalized = {key(k): v for k, v in record.items()}
     for name in names:
-        value = normalized.get(re.sub(r"[^a-z0-9]", "", name.casefold()))
+        value = normalized.get(key(name))
         if value is not None and str(value).strip():
             return str(value).strip()
     return ""
