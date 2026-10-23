@@ -173,22 +173,37 @@ def compare_records(a: dict, b: dict) -> dict | None:
         return None
     similarity = name_similarity(a.get("n"), b.get("n"))
     signals = identity_signals(a, b)
-    strong = any(x in signals for x in ("mismo_telefono", "mismo_dominio", "mismo_correo"))
+    phone_match = "mismo_telefono" in signals
+    domain_match = "mismo_dominio" in signals
+    email_match = "mismo_correo" in signals
     location_support = any(x in signals for x in ("coordenadas_cercanas", "direccion_similar"))
     exact_name = normalize(a.get("n")) == normalize(b.get("n")) and bool(normalize(a.get("n")))
-    if not (strong or (similarity >= 0.88 and location_support) or (exact_name and location_support)):
+    address_a, address_b = tokens(a.get("a")), tokens(b.get("a"))
+    address_conflict = bool(address_a and address_b and len(address_a & address_b) / len(address_a | address_b) < 0.2)
+
+    # A chain's shared website or a municipal/shared email is not identity proof.
+    # Require name similarity or a location signal before raising a duplicate candidate.
+    if phone_match and (similarity >= 0.45 or location_support):
+        confidence = 88 if similarity >= 0.7 or location_support else 76
+    elif exact_name and not address_conflict:
+        confidence = 92 if signals else 82
+    elif similarity >= 0.82 and location_support and not address_conflict:
+        confidence = 80
+    elif email_match and similarity >= 0.55 and not address_conflict:
+        confidence = 76
+    elif domain_match and similarity >= 0.70 and location_support and not address_conflict:
+        confidence = 72
+    else:
         return None
-    # A shared phone/domain/email is enough to raise a review candidate even if names differ.
-    # It is not enough to auto-merge: every result remains review-only during this pilot.
-    confidence = 96 if strong and (similarity >= 0.55 or location_support) else 88 if strong else 84 if exact_name else 75
-    if len(signals) >= 2:
-        confidence = min(99, confidence + 3)
+
+    if len(signals) >= 2 and confidence < 96:
+        confidence = min(95, confidence + 3)
     return {
         "name_similarity": round(similarity, 3),
         "confidence": confidence,
         "signals": signals,
         "decision": "possible_duplicate_review",
-        "note": "Candidato de duplicado: no se fusiona ni se publica automáticamente.",
+        "note": "Candidato para revisión: dominios o contactos compartidos no bastan por sí solos; no se fusiona ni se publica automáticamente.",
     }
 
 
