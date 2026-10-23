@@ -26,6 +26,21 @@ class MotorCalidadTests(unittest.TestCase):
         b = {"n": "Bar La Plasa", "t": "negocio", "a": ""}
         self.assertIsNone(mc.compare_records(a, b))
 
+    def test_dominio_compartido_no_confunde_negocios_de_una_cadena(self):
+        a = {
+            "n": "Hotel Barrosa Palace",
+            "t": "negocio",
+            "a": "Urb. Novo Sancti Petri, Playa de la Barrosa",
+            "w": "https://www.hipotels.com",
+        }
+        b = {
+            "n": "Hotel Barrosa Garden",
+            "t": "negocio",
+            "a": "Urb. Novo Sancti Petri, Playa de la Barrosa",
+            "w": "https://www.hipotels.com",
+        }
+        self.assertIsNone(mc.compare_records(a, b))
+
     def test_tipo_distinto_no_es_duplicado(self):
         a = {"n": "Mercado Central", "t": "ocio", "p": "956123456"}
         b = {"n": "Mercado Central", "t": "negocio", "p": "956123456"}
