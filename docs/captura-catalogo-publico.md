@@ -41,6 +41,10 @@ Respeta los límites de los servicios, no ejecutes repetidamente consultas grand
 
 ## Salida
 
+La automatización produce un único artefacto `catalogo-publico-unificado.json` por ejecución. Su lista `records` reúne candidatos de OpenStreetMap, registros turísticos oficiales de OpenRTA, conjuntos de datos municipales y cada recurso municipal. Los apartados originales `entities`, `official_tourism_candidates` y `sources` también se conservan para trazabilidad; el contenido bruto disponible (`raw_tags` y `raw_record`) no se descarta.
+
+**Importante:** por ahora el portal municipal se inventaría a nivel de conjuntos y recursos; las filas dentro de cada CSV/ODS/API municipal aún no se descargan ni se incorporan. El informe registra sus enlaces y licencias declaradas para procesarlos en la siguiente fase.
+
 El JSON incluye:
 - candidatos turísticos oficiales de OpenRTA en `official_tourism_candidates`, separados de los objetos OSM;
 - fuente y licencia de OpenRTA, con atribución a la Junta de Andalucía;
@@ -54,7 +58,7 @@ El JSON incluye:
 ## Próximas fases necesarias
 
 - Descargar y procesar, de manera selectiva, los recursos municipales cuya licencia permita la reutilización prevista.
-- Incorporar el Registro de Turismo de Andalucía (OpenRTA), cuya ficha de datos declara licencia CC BY 4.0 y actualización diaria; verificar el endpoint y los campos antes de integrarlo.
+- Descargar y procesar las filas de recursos municipales con licencia compatible, incorporándolas a `records` con su procedencia.
 - Comparar candidatos con las 1.013 fichas actuales y los overrides de Supabase en modo de solo lectura.
 - Añadir resolución de web oficial y extracción limitada desde páginas propias de negocios, respetando robots.txt, términos de uso y límites de petición.
 - Producir un informe de cobertura, duplicados probables, campos ausentes y conflictos.
