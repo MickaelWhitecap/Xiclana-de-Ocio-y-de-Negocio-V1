@@ -144,10 +144,14 @@ def name_similarity(a: object, b: object) -> float:
     na, nb = normalize(a), normalize(b)
     if not na or not nb:
         return 0.0
+    if na == nb:
+        return 1.0
     sequence = difflib.SequenceMatcher(None, na, nb).ratio()
     ta, tb = tokens(a), tokens(b)
     jaccard = len(ta & tb) / len(ta | tb) if ta and tb else 0.0
-    return max(sequence, jaccard)
+    # Sequence-only matching overvalues names that share a generic prefix
+    # (for example, two hotels with the same chain and resort in the name).
+    return 0.65 * sequence + 0.35 * jaccard
 
 
 def identity_signals(a: dict, b: dict) -> list[str]:
@@ -183,15 +187,15 @@ def compare_records(a: dict, b: dict) -> dict | None:
 
     # A chain's shared website or a municipal/shared email is not identity proof.
     # Require name similarity or a location signal before raising a duplicate candidate.
-    if phone_match and (similarity >= 0.45 or location_support):
+    if phone_match and (similarity >= 0.55 or location_support):
         confidence = 88 if similarity >= 0.7 or location_support else 76
     elif exact_name and not address_conflict:
         confidence = 92 if signals else 82
-    elif similarity >= 0.82 and location_support and not address_conflict:
+    elif similarity >= 0.78 and location_support and not address_conflict:
         confidence = 80
-    elif email_match and similarity >= 0.55 and not address_conflict:
+    elif email_match and similarity >= 0.70 and location_support and not address_conflict:
         confidence = 76
-    elif domain_match and similarity >= 0.85 and location_support and not address_conflict:
+    elif domain_match and similarity >= 0.80 and location_support and not address_conflict:
         confidence = 72
     else:
         return None
