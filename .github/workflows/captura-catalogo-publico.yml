@@ -116,7 +116,7 @@ jobs:
           municipal = base["sources"].get("municipal_open_data", {})
           base["municipal_datasets_found"] = municipal.get("datasets_found", 0)
           Path("informe-captura-publica.json").write_text(
-              json.dumps(base, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(base, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
           )
           print("Entidades candidatas OSM:", base["entities_found"])
           print("Conjuntos municipales:", base["municipal_datasets_found"])
