@@ -41,7 +41,7 @@ class CatalogCaptureTests(unittest.TestCase):
 
     def test_normalizes_official_openrta_tourism_record(self):
         item = normalize_openrta_record({
-            "ID": 456, "Denominacion": "Hotel de prueba",
+            "ID": 456, "Denominación": "Hotel de prueba",
             "Municipality": "CHICLANA DE LA FRONTERA", "Province": "CÁDIZ",
             "Direccion": "Calle Ejemplo, 2", "Telefono": "956123123",
             "Web": "https://example.org", "Grupo": "Hotel",
