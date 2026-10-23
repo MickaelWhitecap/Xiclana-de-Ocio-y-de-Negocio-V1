@@ -148,7 +148,10 @@ def license_allows_row_capture(license_text: str) -> bool:
     value = (license_text or "").casefold()
     if not value or "no identificada" in value or "unknown" in value or "all rights reserved" in value:
         return False
-    markers = ("cc by", "cc0", "creative commons", "odbl", "open data commons", "public domain", "dominio público")
+    # No aceptar licencias Creative Commons con restricciones NC/ND, ni una mención genérica.
+    if any(marker in value for marker in ("-nc", " nc", "noncommercial", "no comercial", "-nd", " nd", "no derivatives")):
+        return False
+    markers = ("cc by 4.0", "cc by 3.0", "cc by 2.0", "cc0", "odbl", "open data commons", "public domain", "dominio público")
     return any(marker in value for marker in markers)
 
 
