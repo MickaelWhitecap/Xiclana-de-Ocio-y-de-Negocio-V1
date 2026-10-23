@@ -1,6 +1,6 @@
 import unittest
 
-from capturar_catalogo_publico import classify, normalize_element, normalize_openrta_record, _as_records, build_unified_records, overpass_query
+from capturar_catalogo_publico import classify, normalize_element, normalize_openrta_record, _as_records, build_unified_records, overpass_query, license_allows_row_capture, _structured_resource_rows
 
 
 class CatalogCaptureTests(unittest.TestCase):
@@ -81,6 +81,36 @@ class CatalogCaptureTests(unittest.TestCase):
         self.assertIn('["name"]', query)
         self.assertIn('["parking"]', query)
         self.assertIn("out center tags;", query)
+
+    def test_only_recognized_open_licenses_allow_row_capture(self):
+        self.assertTrue(license_allows_row_capture("Creative Commons Attribution 4.0 International"))
+        self.assertTrue(license_allows_row_capture("ODbL 1.0"))
+        self.assertFalse(license_allows_row_capture("No identificada: comprobar antes de reutilizar"))
+        self.assertFalse(license_allows_row_capture(""))
+
+    def test_csv_resource_rows_are_captured_only_when_open_license_is_declared(self):
+        import unittest.mock as mock
+        import io
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def read(self, size=-1): return b"nombre;tipo\\nParking Central;aparcamiento\\n"
+        with mock.patch("urllib.request.urlopen", return_value=Response()):
+            rows, reason = _structured_resource_rows({
+                "url": "https://example.org/parking.csv",
+                "format": "CSV",
+                "license": "CC BY 4.0",
+            })
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["nombre"], "Parking Central")
+        self.assertEqual(reason, "")
+        rows, reason = _structured_resource_rows({
+            "url": "https://example.org/parking.csv",
+            "format": "CSV",
+            "license": "No identificada",
+        })
+        self.assertEqual(rows, [])
+        self.assertIn("Licencia", reason)
 
 
 if __name__ == "__main__":
