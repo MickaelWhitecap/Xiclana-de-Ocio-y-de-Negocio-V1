@@ -252,13 +252,37 @@ def capture_municipal_resource_rows(datasets: list[dict]) -> tuple[list[dict], l
 
 
 def discover_municipal_datasets() -> dict:
-    url = CKAN_URL + "?" + urllib.parse.urlencode({"q": "Chiclana", "rows": 100})
-    payload = request_json(url, timeout=30)
-    if not payload.get("success"):
-        raise RuntimeError("El portal municipal CKAN no devolvió success=true")
-    results = payload.get("result", {}).get("results", [])
+    # Buscar por familias útiles: la consulta genérica "Chiclana" devuelve sobre todo
+    # estadísticas, presupuestos y contratación, con poca utilidad para fichas locales.
+    search_terms = (
+        "instalaciones", "cultura", "deporte", "asociaciones", "mercados",
+        "turismo", "lugares de interés", "eventos", "callejero", "educación",
+        "salud", "aparcamientos", "parking", "camping", "ocio",
+    )
+    found = {}
+    for term in search_terms:
+        url = CKAN_URL + "?" + urllib.parse.urlencode({"q": term, "rows": 100})
+        payload = request_json(url, timeout=30)
+        if not payload.get("success"):
+            raise RuntimeError(f"El portal municipal CKAN no devolvió success=true para la búsqueda {term!r}")
+        for ds in payload.get("result", {}).get("results", []):
+            identity = str(ds.get("id") or ds.get("name") or ds.get("title") or "").strip()
+            if identity:
+                found[identity] = ds
+
     datasets = []
-    for ds in results:
+    relevance_terms = (
+        "instalacion", "cultura", "deport", "asociacion", "mercad", "turis",
+        "interes", "evento", "callejero", "educacion", "salud", "aparc",
+        "parking", "camping", "ocio", "playa", "hostel", "alojamiento",
+        "comercio", "transporte", "parque", "jardin", "museo", "monumento",
+    )
+    for ds in found.values():
+        title = str(ds.get("title", ""))
+        resource_meta = " ".join(str(r.get("name", "")) for r in ds.get("resources", []))
+        searchable = unicodedata.normalize("NFKD", (title + " " + resource_meta).casefold())
+        searchable = "".join(ch for ch in searchable if not unicodedata.combining(ch))
+        is_relevant = any(term in searchable for term in relevance_terms)
         resources = []
         for resource in ds.get("resources", []):
             resources.append({
@@ -267,20 +291,30 @@ def discover_municipal_datasets() -> dict:
                 "url": resource.get("url", ""),
                 "resource_id": resource.get("id", ""),
                 "license": ds.get("license_title") or ds.get("license_id") or "No identificada: comprobar antes de reutilizar",
+                "capture_relevant": is_relevant,
             })
         datasets.append({
-            "title": ds.get("title", ""),
+            "title": title,
             "name": ds.get("name", ""),
             "url": ds.get("url") or ("https://datosabiertos.chiclana.es/dataset/" + str(ds.get("name", ""))),
             "license": ds.get("license_title") or ds.get("license_id") or "No identificada: comprobar antes de reutilizar",
             "resources": resources,
+            "capture_relevant": is_relevant,
         })
-    row_records, resource_audit = capture_municipal_resource_rows(datasets)
+    # No descargar filas de presupuestos, contratos, padrones ni estadísticas agregadas:
+    # se conserva su metadato para auditoría, pero se capturan filas solo de conjuntos útiles.
+    eligible = [
+        {**dataset, "resources": [r for r in dataset["resources"] if r.get("capture_relevant")]}
+        for dataset in datasets if dataset.get("capture_relevant")
+    ]
+    row_records, resource_audit = capture_municipal_resource_rows(eligible)
     return {
         "source": "Portal de Datos Abiertos del Ayuntamiento de Chiclana",
         "catalog_url": "https://datosabiertos.chiclana.es/dataset/",
         "api_url": CKAN_URL,
+        "search_terms": list(search_terms),
         "datasets_found": len(datasets),
+        "datasets_relevant_to_local_listings": len(eligible),
         "datasets": datasets,
         "resource_records": row_records,
         "resource_capture_audit": resource_audit,
