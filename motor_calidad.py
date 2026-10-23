@@ -65,7 +65,11 @@ def tokens(value: object) -> set[str]:
 
 
 def phone_digits(value: object) -> str:
-    return "".join(re.findall(r"\d", str(value or "")))
+    digits = "".join(re.findall(r"\d", str(value or "")))
+    # Normalize Spain's country prefix so +34 956... and 956... compare equally.
+    if len(digits) == 11 and digits.startswith("34"):
+        digits = digits[2:]
+    return digits
 
 
 def normalized_domain(value: object) -> str:
