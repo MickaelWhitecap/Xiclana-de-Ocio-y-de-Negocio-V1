@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "capturar_catalogo_publico.py"
+      - "tests/test_capturar_catalogo_publico.py"
       - ".github/workflows/captura-catalogo-publico.yml"
   workflow_dispatch:
 
@@ -22,6 +23,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Validar sintaxis y pruebas unitarias
+        run: |
+          python -m py_compile capturar_catalogo_publico.py
+          python -m unittest tests.test_capturar_catalogo_publico -v
       - name: Ejecutar captura exploratoria de solo lectura
         id: captura
         continue-on-error: true
