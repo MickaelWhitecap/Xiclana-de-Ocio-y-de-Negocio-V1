@@ -1,6 +1,12 @@
 name: Captura exploratoria de catálogo público
 
 on:
+  push:
+    branches: [feat/captura-catalogo-publico]
+    paths:
+      - "capturar_catalogo_publico.py"
+      - "tests/test_capturar_catalogo_publico.py"
+      - ".github/workflows/captura-catalogo-publico.yml"
   pull_request:
     branches: [main]
     paths:
