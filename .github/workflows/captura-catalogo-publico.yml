@@ -138,6 +138,7 @@ jobs:
               records.append({"record_type": "municipal_dataset", "source": municipal.get("source", "Portal municipal CKAN"), **dataset})
               for resource in dataset.get("resources", []):
                   records.append({"record_type": "municipal_dataset_resource", "source": municipal.get("source", "Portal municipal CKAN"), "dataset_title": dataset.get("title", ""), "dataset_url": dataset.get("url", ""), **resource})
+          records.extend(municipal.get("resource_records", []))
           base["records"] = records
           base["records_found"] = len(records)
           base["counts_by_record_type"] = dict(Counter(r.get("record_type", "unknown") for r in records))
@@ -149,6 +150,7 @@ jobs:
           print("Registros unificados guardados:", base["records_found"])
           print("Entidades candidatas OSM:", base["entities_found"])
           print("Conjuntos municipales:", base["municipal_datasets_found"])
+          print("Filas municipales capturadas:", municipal.get("resource_rows_captured", 0))
           print("Categorías:", json.dumps(base["counts_by_category"], ensure_ascii=False))
           print("Errores:", json.dumps(base["errors"], ensure_ascii=False))
           print("Web pública y Supabase modificados: no")
