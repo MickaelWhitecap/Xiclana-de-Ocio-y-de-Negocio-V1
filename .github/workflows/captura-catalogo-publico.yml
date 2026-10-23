@@ -95,6 +95,7 @@ jobs:
               "google_maps_scraping": False,
               "entities": [],
               "official_tourism_candidates": [],
+              "records": [],
               "sources": {},
               "errors": [],
               "limitations": [
@@ -126,12 +127,26 @@ jobs:
               tourism_seen[key] = item
           base["official_tourism_candidates"] = list(tourism_seen.values())
           base["openrta_candidates_found"] = len(base["official_tourism_candidates"])
-          base["counts_by_category"] = dict(Counter(e.get("category", "Sin categoría") for e in base["entities"]))
+          # Una sola lista con todos los registros capturados, conservando los apartados fuente originales.
+          records = []
+          for item in base["entities"]:
+              records.append({"record_type": "place_candidate", **item})
+          for item in base["official_tourism_candidates"]:
+              records.append({"record_type": "official_tourism_candidate", **item})
           municipal = base["sources"].get("municipal_open_data", {})
+          for dataset in municipal.get("datasets", []):
+              records.append({"record_type": "municipal_dataset", "source": municipal.get("source", "Portal municipal CKAN"), **dataset})
+              for resource in dataset.get("resources", []):
+                  records.append({"record_type": "municipal_dataset_resource", "source": municipal.get("source", "Portal municipal CKAN"), "dataset_title": dataset.get("title", ""), "dataset_url": dataset.get("url", ""), **resource})
+          base["records"] = records
+          base["records_found"] = len(records)
+          base["counts_by_record_type"] = dict(Counter(r.get("record_type", "unknown") for r in records))
+          base["counts_by_category"] = dict(Counter(e.get("category", "Sin categoría") for e in base["entities"]))
           base["municipal_datasets_found"] = municipal.get("datasets_found", 0)
-          Path("informe-captura-publica.json").write_text(
+          Path("catalogo-publico-unificado.json").write_text(
               json.dumps(base, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
           )
+          print("Registros unificados guardados:", base["records_found"])
           print("Entidades candidatas OSM:", base["entities_found"])
           print("Conjuntos municipales:", base["municipal_datasets_found"])
           print("Categorías:", json.dumps(base["counts_by_category"], ensure_ascii=False))
@@ -141,7 +156,7 @@ jobs:
       - name: Publicar informe final descargable
         uses: actions/upload-artifact@v4
         with:
-          name: informe-captura-publica
-          path: informe-captura-publica.json
+          name: catalogo-publico-unificado
+          path: catalogo-publico-unificado.json
           if-no-files-found: error
           retention-days: 14
