@@ -43,7 +43,7 @@ Respeta los límites de los servicios, no ejecutes repetidamente consultas grand
 
 La automatización produce un único artefacto `catalogo-publico-unificado.json` por ejecución. Su lista `records` reúne candidatos de OpenStreetMap, registros turísticos oficiales de OpenRTA, conjuntos de datos municipales y cada recurso municipal. Los apartados originales `entities`, `official_tourism_candidates` y `sources` también se conservan para trazabilidad; el contenido bruto disponible (`raw_tags` y `raw_record`) no se descarta.
 
-**Importante:** por ahora el portal municipal se inventaría a nivel de conjuntos y recursos; las filas dentro de cada CSV/ODS/API municipal aún no se descargan ni se incorporan. El informe registra sus enlaces y licencias declaradas para procesarlos en la siguiente fase.
+**Captura municipal selectiva:** además del inventario de conjuntos y recursos, se descargan filas de CSV, JSON y GeoJSON con licencia abierta reconocible (CC BY, CC0, ODbL o dominio público). Cada recurso está limitado a 5 MiB y 5.000 filas. Licencias desconocidas o con restricciones NC/ND, formatos binarios (XLS/ODS/XLSX en esta fase), enlaces HTTP sin cifrar, recursos grandes y errores quedan registrados en `resource_capture_audit` con el motivo de omisión.
 
 El JSON incluye:
 - candidatos turísticos oficiales de OpenRTA en `official_tourism_candidates`, separados de los objetos OSM;
@@ -55,7 +55,7 @@ El JSON incluye:
 - recursos municipales descubiertos y licencia declarada;
 - errores y limitaciones de la ejecución.
 
-## Próximas fases necesarias
+## Próximas fases necesarias\n\n- Ampliar el lector a XLSX/ODS y APIs paginadas tras validar licencias, dependencias y límites por recurso.
 
 - Descargar y procesar, de manera selectiva, los recursos municipales cuya licencia permita la reutilización prevista.
 - Descargar y procesar las filas de recursos municipales con licencia compatible, incorporándolas a `records` con su procedencia.
