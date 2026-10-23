@@ -435,8 +435,8 @@ function elegir(m){modo=m;document.body.dataset.m=m;$("#elige").classList.add("s
 const q_=$("#q");
 const grid=$("#grid");
 function cardFromEvent(e){const target=e.target instanceof Element?e.target:e.target?.parentElement;return target?.closest("details.card")||null}
-grid.addEventListener("pointerover",e=>{if(e.pointerType!=="mouse")return;const target=e.target instanceof Element?e.target:e.target.parentElement;const card=target?.closest("details.card");if(card&&!card.open)card.classList.add("preview")});
-grid.addEventListener("pointerout",e=>{if(e.pointerType!=="mouse")return;const target=e.target instanceof Element?e.target:e.target.parentElement;const card=target?.closest("details.card");if(card&&!card.open&&(!e.relatedTarget||!card.contains(e.relatedTarget)))card.classList.remove("preview")});
+grid.addEventListener("mouseover",e=>{const target=e.target instanceof Element?e.target:e.target?.parentElement;const card=target?.closest("details.card");if(card&&!card.open&&!card.classList.contains("centered"))card.classList.add("preview")});
+grid.addEventListener("mouseout",e=>{const target=e.target instanceof Element?e.target:e.target?.parentElement;const card=target?.closest("details.card");if(card&&!card.open&&(!e.relatedTarget||!card.contains(e.relatedTarget)))card.classList.remove("preview")});
 
 grid.addEventListener("click",e=>{const target=e.target instanceof Element?e.target:e.target?.parentElement;const sum=target?.closest("summary.card-summary");if(!sum)return;e.preventDefault();const card=sum.parentElement;if(card.classList.contains("centered")){card.open=false;card.classList.remove("preview","centered");const info=card.querySelector(".card-details");if(info)info.style.removeProperty("display");return}document.querySelectorAll(".card.centered").forEach(other=>{other.classList.remove("centered","preview");other.open=false});card.open=true;card.classList.remove("preview");card.classList.add("centered");const info=card.querySelector(".card-details");if(info)info.style.removeProperty("display")});
  document.querySelectorAll(".op").forEach(b=>b.onclick=()=>elegir(b.dataset.m));
