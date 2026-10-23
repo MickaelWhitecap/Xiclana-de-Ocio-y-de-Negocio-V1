@@ -285,7 +285,7 @@ def discover_municipal_datasets() -> dict:
     )
     for ds in found.values():
         title = str(ds.get("title", ""))
-        resource_meta = " ".join(str(r.get("name", "") for r in ds.get("resources", [])))
+        resource_meta = " ".join(str(r.get("name", "")) for r in ds.get("resources", []))
         def normalize_search(value):
             plain = unicodedata.normalize("NFKD", value.casefold())
             return "".join(ch for ch in plain if not unicodedata.combining(ch))
