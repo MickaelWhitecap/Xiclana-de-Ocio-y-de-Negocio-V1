@@ -23,6 +23,8 @@ from pathlib import Path
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 CKAN_URL = "https://datosabiertos.chiclana.es/api/3/action/package_search"
+OPENRTA_SEARCH_URL = "https://datos.juntadeandalucia.es/api/v0/openrta/search"
+OPENRTA_LICENSE = "CC BY 4.0; atribución a la Junta de Andalucía"
 USER_AGENT = "XiclanaCatalogAudit/0.1 (public-data discovery; contact via project repository)"
 TAGS = (
     "amenity", "shop", "tourism", "leisure", "craft", "office", "healthcare",
@@ -63,10 +65,11 @@ CATEGORY_MAP = {
 }
 
 
-def request_json(url: str, data: bytes | None = None, timeout: int = 90):
-    req = urllib.request.Request(
-        url, data=data, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}
-    )
+def request_json(url: str, data: bytes | None = None, timeout: int = 90, content_type: str | None = None):
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    if content_type:
+        headers["Content-Type"] = content_type
+    req = urllib.request.Request(url, data=data, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
 
@@ -173,6 +176,94 @@ def capture_overpass() -> list[dict]:
     return [normalize_element(e) for e in payload.get("elements", []) if (e.get("tags") or {}).get("name")]
 
 
+
+def _as_records(payload) -> list[dict]:
+    """Acepta las formas habituales de respuesta de la API sin asumir un único envoltorio."""
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if not isinstance(payload, dict):
+        return []
+    for key in ("data", "results", "result", "items", "records", "features"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            if key == "features":
+                return [x.get("properties", x) for x in value if isinstance(x, dict)]
+            return [x for x in value if isinstance(x, dict)]
+        if isinstance(value, dict):
+            nested = _as_records(value)
+            if nested:
+                return nested
+    # Algunos servicios devuelven un registro o un objeto indexado por identificador.
+    if any(k in payload for k in ("municipality", "municipality_name", "municipio", "municipalityName")):
+        return [payload]
+    return []
+
+
+def _field(record: dict, *names: str) -> str:
+    """Obtiene el primer campo no vacío, tolerando mayúsculas y nombres con espacios."""
+    normalized = {re.sub(r"[^a-z0-9]", "", str(k).casefold()): v for k, v in record.items()}
+    for name in names:
+        value = normalized.get(re.sub(r"[^a-z0-9]", "", name.casefold()))
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""
+
+
+def normalize_openrta_record(record: dict) -> dict:
+    name = _field(record, "name", "denomination", "denominacion", "nombre", "business_name", "commercial_name")
+    municipality = _field(record, "municipality", "municipality_name", "municipalityName", "municipio", "locality")
+    province = _field(record, "province", "province_name", "provincia")
+    bid = _field(record, "id", "bid", "registration_number", "numero_registro", "registration")
+    latitude = _field(record, "latitude", "lat", "coord_latitude", "y")
+    longitude = _field(record, "longitude", "lon", "lng", "coord_longitude", "x")
+    address = _field(record, "address", "direccion", "domicilio", "street_address")
+    phone = _field(record, "phone", "telephone", "telefono", "contact_phone")
+    website = _field(record, "website", "web", "url", "pagina_web")
+    category = _field(record, "object_type", "object_type_name", "tipo_objeto", "group", "grupo", "category", "categoria")
+    return {
+        "name": name,
+        "category": "Turismo y alojamiento",
+        "official_category": category,
+        "registration_id": bid,
+        "municipality": municipality,
+        "province": province,
+        "address": address,
+        "phone": phone,
+        "website": website,
+        "latitude": latitude,
+        "longitude": longitude,
+        "source": "Registro de Turismo de Andalucía (OpenRTA)",
+        "source_url": f"https://datos.juntadeandalucia.es/api/v0/openrta/{urllib.parse.quote(bid)}" if bid.isdigit() else "https://datos.juntadeandalucia.es/api/v0/openrta/docs",
+        "license": OPENRTA_LICENSE,
+        "raw_record": record,
+    }
+
+
+def capture_openrta() -> list[dict]:
+    """Busca en OpenRTA por municipio; nunca importa directamente a la web."""
+    body = {
+        "municipalities": "CHICLANA DE LA FRONTERA",
+        "provinces": "CÁDIZ",
+        "format": "json",
+        "size": 0,
+        "mode": "ASC",
+        "order_by": "data.ID",
+    }
+    payload = request_json(
+        OPENRTA_SEARCH_URL,
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        timeout=90,
+        content_type="application/json",
+    )
+    records = _as_records(payload)
+    candidates = [normalize_openrta_record(x) for x in records]
+    # Defensa adicional: la respuesta debe corresponder al municipio solicitado.
+    return [
+        x for x in candidates
+        if "CHICLANA" in (x["municipality"] + " " + x["province"]).upper()
+        and x["name"]
+    ]
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default="informe-captura-publica.json",
@@ -180,7 +271,9 @@ def main() -> int:
     parser.add_argument("--skip-overpass", action="store_true",
                         help="Consultar solo el catálogo municipal de conjuntos de datos")
     parser.add_argument("--skip-municipal", action="store_true",
-                        help="Consultar solo OpenStreetMap")
+                        help="Omitir el catálogo municipal CKAN")
+    parser.add_argument("--skip-openrta", action="store_true",
+                        help="Omitir el Registro de Turismo de Andalucía")
     parser.add_argument("--delay", type=float, default=2.0,
                         help="Pausa entre fuentes (segundos)")
     args = parser.parse_args()
@@ -205,6 +298,7 @@ def main() -> int:
         ],
         "sources": {},
         "entities": [],
+        "official_tourism_candidates": [],
         "counts_by_category": {},
     }
     errors = []
@@ -231,6 +325,19 @@ def main() -> int:
             report["sources"]["municipal_open_data"] = discover_municipal_datasets()
         except Exception as exc:
             errors.append({"source": "Portal municipal CKAN", "error": str(exc)})
+    if not args.skip_openrta:
+        try:
+            tourism = capture_openrta()
+            report["official_tourism_candidates"] = tourism
+            report["sources"]["OpenRTA"] = {
+                "url": "https://datos.juntadeandalucia.es/api/v0/openrta/docs",
+                "dataset_url": "https://www.juntadeandalucia.es/datosabiertos/portal/dataset/openrta",
+                "records_found_for_municipality": len(tourism),
+                "license": OPENRTA_LICENSE,
+                "attribution": "Junta de Andalucía — Registro de Turismo de Andalucía (OpenRTA)",
+            }
+        except Exception as exc:
+            errors.append({"source": "OpenRTA", "error": str(exc)})
     report["counts_by_category"] = dict(Counter(x["category"] for x in report["entities"]))
     report["entities_found"] = len(report["entities"])
     report["errors"] = errors
@@ -241,6 +348,7 @@ def main() -> int:
         "entities_found": report["entities_found"],
         "counts_by_category": report["counts_by_category"],
         "municipal_datasets_found": report.get("sources", {}).get("municipal_open_data", {}).get("datasets_found"),
+        "openrta_candidates_found": len(report.get("official_tourism_candidates", [])),
         "errors": errors,
         "production_data_modified": False,
         "supabase_modified": False,
