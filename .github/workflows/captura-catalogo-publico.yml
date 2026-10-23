@@ -45,7 +45,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Capturar candidatos de OpenStreetMap
-        run: python capturar_catalogo_publico.py --skip-municipal --output informe-osm.json
+        run: python capturar_catalogo_publico.py --skip-municipal --skip-openrta --output informe-osm.json
         continue-on-error: true
       - name: Guardar captura de OpenStreetMap
         if: always()
