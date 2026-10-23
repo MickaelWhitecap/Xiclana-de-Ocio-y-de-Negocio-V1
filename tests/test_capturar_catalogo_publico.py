@@ -1,6 +1,6 @@
 import unittest
 
-from capturar_catalogo_publico import classify, normalize_element, normalize_openrta_record, _as_records, overpass_query
+from capturar_catalogo_publico import classify, normalize_element, normalize_openrta_record, _as_records, build_unified_records, overpass_query
 
 
 class CatalogCaptureTests(unittest.TestCase):
@@ -56,6 +56,24 @@ class CatalogCaptureTests(unittest.TestCase):
     def test_openrta_records_accept_common_response_wrappers(self):
         self.assertEqual(_as_records({"data": [{"id": 1}]}), [{"id": 1}])
         self.assertEqual(_as_records([{"id": 2}]), [{"id": 2}])
+
+    def test_unifies_all_source_record_types_without_losing_raw_data(self):
+        report = {
+            "entities": [{"name": "Panadería", "source": "OpenStreetMap", "raw_tags": {"shop": "bakery"}}],
+            "official_tourism_candidates": [{"name": "Hotel", "source": "OpenRTA", "raw_record": {"ID": 9}}],
+            "sources": {"municipal_open_data": {"source": "Portal municipal", "datasets": [
+                {"title": "Mercados", "url": "https://example.org/dataset", "resources": [
+                    {"name": "mercados.csv", "url": "https://example.org/mercados.csv", "license": "CC BY"}
+                ]}
+            ]}}
+        }
+        records = build_unified_records(report)
+        self.assertEqual([r["record_type"] for r in records], [
+            "place_candidate", "official_tourism_candidate", "municipal_dataset", "municipal_dataset_resource"
+        ])
+        self.assertEqual(records[0]["raw_tags"]["shop"], "bakery")
+        self.assertEqual(records[1]["raw_record"]["ID"], 9)
+        self.assertEqual(records[3]["url"], "https://example.org/mercados.csv")
 
     def test_query_is_scoped_to_chiclana_and_named_objects(self):
         query = overpass_query()
