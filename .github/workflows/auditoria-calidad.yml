@@ -1,0 +1,47 @@
+name: Probar motor de calidad de datos
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "motor_calidad.py"
+      - "tests/**"
+      - "manuales.json"
+      - "oficiales.json"
+      - "turismo.json"
+      - "datos/osm.json"
+      - ".github/workflows/auditoria-calidad.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ejecutar pruebas unitarias
+        run: python -m unittest discover -s tests -v
+      - name: Ejecutar simulación sin publicar
+        run: python motor_calidad.py --output /tmp/informe-calidad-xiclana.json
+      - name: Validar que el informe es de solo lectura
+        run: |
+          python - <<'PY'
+          import json
+          with open("/tmp/informe-calidad-xiclana.json", encoding="utf-8") as f:
+              report = json.load(f)
+          assert report["mode"] == "dry_run_only"
+          assert report["public_data_modified"] is False
+          assert report["supabase_modified"] is False
+          assert report["thresholds"]["auto_publication_enabled"] is False
+          print("Validación correcta: simulación sin cambios públicos ni escrituras en Supabase.")
+          print("Registros analizados:", report["total_source_records"])
+          print("Pares candidatos a duplicado:", report["potential_duplicate_pairs"])
+          print("Propuestas para revisión:", report["proposals_for_review"])
+          PY
