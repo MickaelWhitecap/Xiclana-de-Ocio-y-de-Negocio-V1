@@ -191,7 +191,7 @@ def compare_records(a: dict, b: dict) -> dict | None:
         confidence = 80
     elif email_match and similarity >= 0.55 and not address_conflict:
         confidence = 76
-    elif domain_match and similarity >= 0.70 and location_support and not address_conflict:
+    elif domain_match and similarity >= 0.85 and location_support and not address_conflict:
         confidence = 72
     else:
         return None
