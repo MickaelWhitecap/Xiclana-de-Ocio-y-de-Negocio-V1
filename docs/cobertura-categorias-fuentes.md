@@ -60,6 +60,17 @@ Orden de búsqueda recomendado; la prioridad se evalúa por campo, no se aplica 
 5. **Buscadores y plataformas:** utilizarlos para descubrir la web oficial o localizar una fuente autorizada. No asumir que aparecer en un resultado autoriza a copiar y almacenar su contenido.
 6. **Aportaciones de usuarios y visitas presenciales:** guardar fecha, método y quién verificó; no reemplazar silenciosamente valores conflictivos.
 
+
+### Fuentes concretas localizadas en la primera búsqueda web
+
+- **Portal de Datos Abiertos del Ayuntamiento:** https://datosabiertos.chiclana.es/dataset/ . El portal muestra alrededor de 30 conjuntos de datos, entre ellos centros educativos, eventos y actividades, instalaciones culturales y deportivas, callejero oficial, mercados y mercadillos, asociaciones, formación, lugares de interés turístico, obras y otros datos municipales. Hay que revisar la ficha y la licencia de cada conjunto antes de importar recursos. Fuente consultada: https://datosabiertos.chiclana.es/dataset/
+- **Turismo oficial — alojamientos:** https://turismo.chiclana.es/planifica-tu-viaje/alojamientos/ . La página muestra alojamientos y filtros por tipo/zona; en la consulta inicial aparecían 40 resultados. Es una fuente de descubrimiento para el bloque de alojamientos, no una prueba de que el inventario turístico completo esté cubierto.
+- **Turismo oficial — ocio y diversión:** https://turismo.chiclana.es/sol-y-playa/ocio-y-diversion/ . Incluye referencias a espacios comerciales, cultura, cine, teatro y actividades de ocio.
+- **Mapa local de equipamientos:** https://www.chiclanadigital.es/mapa . Presenta equipamientos de salud/farmacia, educación, deporte y cultura/social, con datos atribuidos a OpenStreetMap y al callejero municipal.
+- **OpenStreetMap / Overpass:** fuente abierta para ampliar la búsqueda a comercios y POI por etiquetas, incluyendo aparcamientos, camping/áreas de autocaravanas, salud, educación, oficinas, servicios públicos, accesibilidad y contactos si la comunidad los ha añadido. Su cobertura no es exhaustiva y no todos los elementos contienen teléfono o web.
+
+Esta búsqueda inicial identifica fuentes y familias de categorías; no equivale a una descarga completa del municipio. El siguiente paso técnico es ejecutar una captura reproducible y de solo lectura, registrar el total por categoría y comparar los candidatos con el inventario público y los overrides de Supabase sin modificarlos.
+
 ## Google y otros directorios cerrados
 
 No realizar scraping, descarga masiva ni copia persistente de nombres, teléfonos, direcciones, reseñas, fotos o fichas de Google Maps para construir el directorio. Las condiciones de Google Maps Platform restringen extraer/almacenar contenido para reutilizarlo fuera del servicio y crear bases de datos de fichas de empresas a partir de ese contenido.
