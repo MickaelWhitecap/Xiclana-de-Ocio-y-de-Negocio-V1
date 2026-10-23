@@ -1,6 +1,6 @@
 import unittest
 
-from capturar_catalogo_publico import classify, normalize_element, overpass_query
+from capturar_catalogo_publico import classify, normalize_element, normalize_openrta_record, _as_records, overpass_query
 
 
 class CatalogCaptureTests(unittest.TestCase):
@@ -38,6 +38,24 @@ class CatalogCaptureTests(unittest.TestCase):
         self.assertEqual(classify({"parking": "surface"}), "Aparcamiento")
         self.assertEqual(classify({"healthcare": "doctor"}), "Salud y cuidados")
         self.assertEqual(classify({}), "Sin categoría asignada")
+
+    def test_normalizes_official_openrta_tourism_record(self):
+        item = normalize_openrta_record({
+            "ID": 456, "Denominacion": "Hotel de prueba",
+            "Municipality": "CHICLANA DE LA FRONTERA", "Province": "CÁDIZ",
+            "Direccion": "Calle Ejemplo, 2", "Telefono": "956123123",
+            "Web": "https://example.org", "Grupo": "Hotel",
+        })
+        self.assertEqual(item["name"], "Hotel de prueba")
+        self.assertEqual(item["municipality"], "CHICLANA DE LA FRONTERA")
+        self.assertEqual(item["address"], "Calle Ejemplo, 2")
+        self.assertEqual(item["source"], "Registro de Turismo de Andalucía (OpenRTA)")
+        self.assertIn("CC BY 4.0", item["license"])
+        self.assertTrue(item["source_url"].endswith("/456"))
+
+    def test_openrta_records_accept_common_response_wrappers(self):
+        self.assertEqual(_as_records({"data": [{"id": 1}]}), [{"id": 1}])
+        self.assertEqual(_as_records([{"id": 2}]), [{"id": 2}])
 
     def test_query_is_scoped_to_chiclana_and_named_objects(self):
         query = overpass_query()
