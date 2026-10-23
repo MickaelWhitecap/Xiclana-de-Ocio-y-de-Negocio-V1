@@ -138,6 +138,116 @@ def normalize_element(element: dict) -> dict:
     }
 
 
+
+MAX_RESOURCE_BYTES = 5 * 1024 * 1024
+MAX_ROWS_PER_RESOURCE = 5000
+
+
+def license_allows_row_capture(license_text: str) -> bool:
+    """Permite capturar filas solo cuando el metadato declara una licencia abierta reconocible."""
+    value = (license_text or "").casefold()
+    if not value or "no identificada" in value or "unknown" in value or "all rights reserved" in value:
+        return False
+    markers = ("cc by", "cc0", "creative commons", "odbl", "open data commons", "public domain", "dominio público")
+    return any(marker in value for marker in markers)
+
+
+def _decode_csv(data: bytes) -> list[dict]:
+    import csv
+    import io
+    sample = data[:8192].decode("utf-8-sig", errors="replace")
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;\\t|")
+    except csv.Error:
+        dialect = csv.excel
+    reader = csv.DictReader(io.StringIO(data.decode("utf-8-sig", errors="replace")), dialect=dialect)
+    return [dict(row) for _, row in zip(range(MAX_ROWS_PER_RESOURCE), reader)]
+
+
+def _structured_resource_rows(resource: dict) -> tuple[list[dict], str]:
+    """Descarga CSV/JSON/GeoJSON pequeño; no ejecuta contenido ni procesa formatos binarios."""
+    url = str(resource.get("url") or "").strip()
+    fmt = str(resource.get("format") or "").casefold().strip()
+    if not url.startswith("https://"):
+        return [], "URL no HTTPS o ausente"
+    if not license_allows_row_capture(str(resource.get("license") or "")):
+        return [], "Licencia no reconocida como abierta; solo se conserva el metadato"
+    path_fmt = urllib.parse.urlparse(url).path.casefold().rsplit(".", 1)[-1] if "." in urllib.parse.urlparse(url).path else ""
+    kind = fmt if fmt else path_fmt
+    if kind in ("geojson", "geo json", "json", "application/json"):
+        kind = "json" if kind != "geojson" else "geojson"
+    elif kind in ("csv", "text/csv", "comma-separated values"):
+        kind = "csv"
+    else:
+        return [], "Formato no compatible en esta fase"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/csv, application/json, application/geo+json"})
+        with urllib.request.urlopen(req, timeout=25) as response:
+            raw = response.read(MAX_RESOURCE_BYTES + 1)
+        if len(raw) > MAX_RESOURCE_BYTES:
+            return [], "Recurso supera el límite de 5 MiB"
+        if kind == "csv":
+            rows = _decode_csv(raw)
+        else:
+            payload = json.loads(raw.decode("utf-8-sig"))
+            if isinstance(payload, dict) and payload.get("type") == "FeatureCollection":
+                rows = []
+                for feature in payload.get("features", [])[:MAX_ROWS_PER_RESOURCE]:
+                    if not isinstance(feature, dict):
+                        continue
+                    row = dict(feature.get("properties") or {})
+                    geometry = feature.get("geometry")
+                    if geometry is not None:
+                        row["_geometry"] = geometry
+                    rows.append(row)
+            elif isinstance(payload, list):
+                rows = [x if isinstance(x, dict) else {"value": x} for x in payload[:MAX_ROWS_PER_RESOURCE]]
+            elif isinstance(payload, dict):
+                for key in ("results", "records", "data", "items"):
+                    if isinstance(payload.get(key), list):
+                        rows = [x if isinstance(x, dict) else {"value": x} for x in payload[key][:MAX_ROWS_PER_RESOURCE]]
+                        break
+                else:
+                    rows = [payload]
+            else:
+                rows = []
+        return rows, ""
+    except Exception as exc:
+        return [], f"{type(exc).__name__}: {exc}"
+
+
+def capture_municipal_resource_rows(datasets: list[dict]) -> tuple[list[dict], list[dict]]:
+    rows, audit = [], []
+    for dataset in datasets:
+        for resource in dataset.get("resources", []):
+            source_resource = {**resource, "license": resource.get("license") or dataset.get("license", "")}
+            data_rows, skip_reason = _structured_resource_rows(source_resource)
+            audit.append({
+                "dataset_title": dataset.get("title", ""),
+                "resource_name": resource.get("name", ""),
+                "resource_url": resource.get("url", ""),
+                "license": source_resource.get("license", ""),
+                "rows_captured": len(data_rows),
+                "status": "captured" if data_rows else "skipped_or_empty",
+                "reason": skip_reason,
+            })
+            for index, row in enumerate(data_rows, start=1):
+                rows.append({
+                    "record_type": "municipal_dataset_record",
+                    "source": "Portal de Datos Abiertos del Ayuntamiento de Chiclana",
+                    "dataset_title": dataset.get("title", ""),
+                    "dataset_url": dataset.get("url", ""),
+                    "resource_name": resource.get("name", ""),
+                    "resource_url": resource.get("url", ""),
+                    "resource_id": resource.get("resource_id", ""),
+                    "row_number": index,
+                    "license": source_resource.get("license", ""),
+                    "retrieved_at": datetime.now(timezone.utc).isoformat(),
+                    "raw_record": row,
+                })
+    return rows, audit
+
+
 def discover_municipal_datasets() -> dict:
     url = CKAN_URL + "?" + urllib.parse.urlencode({"q": "Chiclana", "rows": 100})
     payload = request_json(url, timeout=30)
@@ -162,12 +272,16 @@ def discover_municipal_datasets() -> dict:
             "license": ds.get("license_title") or ds.get("license_id") or "No identificada: comprobar antes de reutilizar",
             "resources": resources,
         })
+    row_records, resource_audit = capture_municipal_resource_rows(datasets)
     return {
         "source": "Portal de Datos Abiertos del Ayuntamiento de Chiclana",
         "catalog_url": "https://datosabiertos.chiclana.es/dataset/",
         "api_url": CKAN_URL,
         "datasets_found": len(datasets),
         "datasets": datasets,
+        "resource_records": row_records,
+        "resource_capture_audit": resource_audit,
+        "resource_rows_captured": len(row_records),
     }
 
 
@@ -292,6 +406,7 @@ def build_unified_records(report: dict) -> list[dict]:
                 "dataset_url": dataset.get("url", ""),
                 **resource,
             })
+    records.extend(municipal.get("resource_records", []))
     return records
 
 def main() -> int:
@@ -322,7 +437,7 @@ def main() -> int:
         "google_maps_scraping": False,
         "limitations": [
             "La cobertura OSM depende de los datos cartografiados por la comunidad y no es exhaustiva.",
-            "Los recursos municipales se inventarían primero; cada recurso debe revisarse por licencia antes de importar sus filas.",
+            "Solo se capturan filas municipales en CSV/JSON/GeoJSON con licencia abierta reconocible; otros recursos quedan inventariados con motivo de omisión.",
             "No se infiere cierre por ausencia de un establecimiento en una fuente.",
             "Los resultados son candidatos a comparar, no fichas aprobadas ni publicaciones automáticas.",
         ],
@@ -382,6 +497,7 @@ def main() -> int:
         "entities_found": report["entities_found"],
         "counts_by_category": report["counts_by_category"],
         "municipal_datasets_found": report.get("sources", {}).get("municipal_open_data", {}).get("datasets_found"),
+        "municipal_resource_rows_captured": report.get("sources", {}).get("municipal_open_data", {}).get("resource_rows_captured", 0),
         "openrta_candidates_found": len(report.get("official_tourism_candidates", [])),
         "records_found": report.get("records_found", 0),
         "errors": errors,
