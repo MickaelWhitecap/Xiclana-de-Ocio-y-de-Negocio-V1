@@ -1,0 +1,58 @@
+name: Captura exploratoria de catálogo público
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "capturar_catalogo_publico.py"
+      - ".github/workflows/captura-catalogo-publico.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  captura:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Descargar código de la rama de trabajo
+        uses: actions/checkout@v4
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ejecutar captura exploratoria de solo lectura
+        id: captura
+        continue-on-error: true
+        run: |
+          python capturar_catalogo_publico.py --output informe-captura-publica.json
+      - name: Publicar el informe como artefacto descargable
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-captura-publica
+          path: informe-captura-publica.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Mostrar resumen de captura
+        if: always()
+        run: |
+          if [ -f informe-captura-publica.json ]; then
+            python - <<'PY'
+          import json
+          with open("informe-captura-publica.json", encoding="utf-8") as f:
+              r = json.load(f)
+          print("Entidades candidatas:", r.get("entities_found", 0))
+          print("Categorías:", json.dumps(r.get("counts_by_category", {}), ensure_ascii=False))
+          print("Fuentes:", ", ".join(r.get("sources", {}).keys()))
+          print("Errores:", json.dumps(r.get("errors", []), ensure_ascii=False))
+          print("Datos públicos modificados:", r.get("production_data_modified", False))
+          print("Supabase modificado:", r.get("supabase_modified", False))
+          PY
+          else
+            echo "No se generó informe; revisar el paso de captura."
+          fi
+      - name: Marcar error si falló alguna fuente
+        if: steps.captura.outcome == 'failure'
+        run: exit 1
