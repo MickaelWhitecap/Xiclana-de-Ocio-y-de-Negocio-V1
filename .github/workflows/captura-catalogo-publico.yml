@@ -88,6 +88,7 @@ jobs:
               "supabase_modified": False,
               "google_maps_scraping": False,
               "entities": [],
+              "official_tourism_candidates": [],
               "sources": {},
               "errors": [],
               "limitations": [
@@ -105,6 +106,7 @@ jobs:
                   continue
               base["sources"].update(report.get("sources", {}))
               base["entities"].extend(report.get("entities", []))
+              base["official_tourism_candidates"].extend(report.get("official_tourism_candidates", []))
               base["errors"].extend(report.get("errors", []))
           seen = {}
           for entity in base["entities"]:
@@ -112,6 +114,12 @@ jobs:
               seen[key] = entity
           base["entities"] = list(seen.values())
           base["entities_found"] = len(base["entities"])
+          tourism_seen = {}
+          for item in base["official_tourism_candidates"]:
+              key = item.get("registration_id") or (item.get("name"), item.get("address"))
+              tourism_seen[key] = item
+          base["official_tourism_candidates"] = list(tourism_seen.values())
+          base["openrta_candidates_found"] = len(base["official_tourism_candidates"])
           base["counts_by_category"] = dict(Counter(e.get("category", "Sin categoría") for e in base["entities"]))
           municipal = base["sources"].get("municipal_open_data", {})
           base["municipal_datasets_found"] = municipal.get("datasets_found", 0)
