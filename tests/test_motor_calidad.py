@@ -18,6 +18,9 @@ class MotorCalidadTests(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("mismo_telefono", result["signals"])
 
+    def test_normaliza_prefijo_internacional_espanol(self):
+        self.assertEqual(mc.phone_digits("+34 956 123 456"), mc.phone_digits("956123456"))
+
     def test_nombre_parecido_sin_prueba_no_fusiona(self):
         a = {"n": "Bar La Plaza", "t": "negocio", "a": ""}
         b = {"n": "Bar La Plasa", "t": "negocio", "a": ""}
