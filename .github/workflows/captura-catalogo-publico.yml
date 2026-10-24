@@ -1,0 +1,186 @@
+name: Captura exploratoria de catálogo público
+
+on:
+  push:
+    branches: [feat/captura-catalogo-publico]
+    paths:
+      - "capturar_catalogo_publico.py"
+      - "tests/test_capturar_catalogo_publico.py"
+      - ".github/workflows/captura-catalogo-publico.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "capturar_catalogo_publico.py"
+      - "tests/test_capturar_catalogo_publico.py"
+      - ".github/workflows/captura-catalogo-publico.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Evita que dos capturas intenten guardar el mismo JSON simultáneamente.
+concurrency:
+  group: captura-catalogo-publico-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  catalogo-municipal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar lectores de hojas de cálculo
+        run: python -m pip install --disable-pip-version-check openpyxl xlrd
+      - name: Validar sintaxis y pruebas unitarias
+        run: |
+          python -m py_compile capturar_catalogo_publico.py
+          python -m unittest tests.test_capturar_catalogo_publico -v
+      - name: Inventariar catálogo municipal
+        run: python capturar_catalogo_publico.py --skip-overpass --output informe-municipal.json
+      - name: Guardar inventario municipal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-municipal
+          path: informe-municipal.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  openstreetmap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Capturar candidatos de OpenStreetMap
+        run: python capturar_catalogo_publico.py --skip-municipal --skip-openrta --output informe-osm.json
+        continue-on-error: true
+      - name: Guardar captura de OpenStreetMap
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: captura-osm
+          path: informe-osm.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  reunir-informe:
+    runs-on: ubuntu-latest
+    needs: [catalogo-municipal, openstreetmap]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Descargar informes parciales
+        uses: actions/download-artifact@v4
+        with:
+          pattern: captura-*
+          path: parciales
+          merge-multiple: false
+      - name: Combinar informe final
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          base = {
+              "report_type": "exploratory_public_data_capture",
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "municipality": "Chiclana de la Frontera, Cádiz, España",
+              "mode": "read_only",
+              "production_data_modified": False,
+              "supabase_modified": False,
+              "google_maps_scraping": False,
+              "entities": [],
+              "official_tourism_candidates": [],
+              "records": [],
+              "sources": {},
+              "errors": [],
+              "limitations": [
+                  "OpenStreetMap no es exhaustivo y depende de los datos cartografiados.",
+                  "Los conjuntos municipales requieren revisión de licencia por recurso antes de reutilizar filas.",
+                  "No se infiere cierre por ausencia de una fuente.",
+                  "Los resultados son candidatos, no fichas aprobadas ni publicaciones automáticas."
+              ]
+          }
+          for path in Path("parciales").glob("*/*.json"):
+              try:
+                  report = json.loads(path.read_text(encoding="utf-8"))
+              except Exception as exc:
+                  base["errors"].append({"source": str(path), "error": str(exc)})
+                  continue
+              base["sources"].update(report.get("sources", {}))
+              base["entities"].extend(report.get("entities", []))
+              base["official_tourism_candidates"].extend(report.get("official_tourism_candidates", []))
+              base["errors"].extend(report.get("errors", []))
+          seen = {}
+          for entity in base["entities"]:
+              key = (entity.get("osm_type"), entity.get("osm_id"))
+              seen[key] = entity
+          base["entities"] = list(seen.values())
+          base["entities_found"] = len(base["entities"])
+          tourism_seen = {}
+          for item in base["official_tourism_candidates"]:
+              key = item.get("registration_id") or (item.get("name"), item.get("address"))
+              tourism_seen[key] = item
+          base["official_tourism_candidates"] = list(tourism_seen.values())
+          base["openrta_candidates_found"] = len(base["official_tourism_candidates"])
+          # Una sola lista con todos los registros capturados, conservando los apartados fuente originales.
+          records = []
+          for item in base["entities"]:
+              records.append({"record_type": "place_candidate", **item})
+          for item in base["official_tourism_candidates"]:
+              records.append({"record_type": "official_tourism_candidate", **item})
+          municipal = base["sources"].get("municipal_open_data", {})
+          for dataset in municipal.get("datasets", []):
+              records.append({"record_type": "municipal_dataset", "source": municipal.get("source", "Portal municipal CKAN"), **dataset})
+              for resource in dataset.get("resources", []):
+                  records.append({"record_type": "municipal_dataset_resource", "source": municipal.get("source", "Portal municipal CKAN"), "dataset_title": dataset.get("title", ""), "dataset_url": dataset.get("url", ""), **resource})
+          records.extend(municipal.get("resource_records", []))
+          base["records"] = records
+          base["records_found"] = len(records)
+          base["counts_by_record_type"] = dict(Counter(r.get("record_type", "unknown") for r in records))
+          base["counts_by_category"] = dict(Counter(e.get("category", "Sin categoría") for e in base["entities"]))
+          base["municipal_datasets_found"] = municipal.get("datasets_found", 0)
+          Path("catalogo-publico-unificado.json").write_text(
+              json.dumps(base, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+          )
+          print("Registros unificados guardados:", base["records_found"])
+          print("Entidades candidatas OSM:", base["entities_found"])
+          print("Conjuntos municipales:", base["municipal_datasets_found"])
+          print("Filas municipales capturadas:", municipal.get("resource_rows_captured", 0))
+          print("Categorías:", json.dumps(base["counts_by_category"], ensure_ascii=False))
+          print("Errores:", json.dumps(base["errors"], ensure_ascii=False))
+          print("Web pública y Supabase modificados: no")
+          PY
+      - name: Guardar el fichero unificado en la rama de desarrollo
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/feat/captura-catalogo-publico'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalogo-publico-unificado.json
+          if git diff --cached --quiet; then
+            echo "El fichero unificado no ha cambiado; no hay commit que crear."
+          else
+            git commit -m "Actualizar catálogo público unificado"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi
+      - name: Publicar informe final descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalogo-publico-unificado
+          path: catalogo-publico-unificado.json
+          if-no-files-found: error
+          retention-days: 14
