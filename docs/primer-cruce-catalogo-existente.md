@@ -13,11 +13,11 @@ No se cuentan las 6.204 filas del callejero como establecimientos. También se e
 
 ## Resultados preliminares
 
-| Fuente | Coincidencia probable por nombre y proximidad | Nombre cercano a ficha existente | Coincidencia espacial con nombre distinto | Ambiguo | Sin coincidencia automática |
-|---|---:|---:|---:|---:|---:|
-| OpenStreetMap | 836 | 20 | 73 | 212 | 398 |
-| OpenRTA | 0 | 0 | 19 | 44 | 105 |
-| Municipal | 0 | 2 | 0 | 0 | 38 |
+| Fuente | Nombre y proximidad probables | Variante de nombre | Cerca de ficha con nombre distinto | Nombre exacto, ubicación por comprobar | Ambiguo | Sin coincidencia automática |
+|---|---:|---:|---:|---:|---:|---:|
+| OpenStreetMap | 836 | 20 | 73 | 32 | 212 | 398 |
+| OpenRTA | 0 | 0 | 19 | 0 | 44 | 105 |
+| Municipal | 0 | 2 | 0 | 5 | 0 | 33 |
 
 Notas:
 - Para OpenStreetMap, «ambiguo» agrupa 87 nombres duplicados en el catálogo y 125 candidatos próximos a varias fichas.
