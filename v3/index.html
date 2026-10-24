@@ -413,7 +413,7 @@ const k=q?all.filter(x=>x.t===otro&&[x.n,x.c,x.a,x.d].join(" ").toLowerCase().in
 e.append("Sin resultados en "+(ocio?"Ocio":"NegOcio")+(v?" para «"+v+"»":"")+". ");
 if(k){const b=el("button","btn s","Ver los "+k+" resultados en "+(ocio?"NegOcio":"Ocio"));b.onclick=()=>{const t=$("#q").value;elegir(otro);$("#q").value=t;render()};e.append(b)}else e.append("Prueba con otra palabra o quita el filtro de categoría.")}
 function render(){
- const all=[...SEED,...mine];document.querySelectorAll(".cnt").forEach(e=>{const k=all.filter(x=>x.t===e.dataset.c).length;e.textContent=k.toLocaleString("es-ES")+(k===1?" ficha":" fichas")});const q=$("#q").value.toLowerCase(),t=modo;
+ const all=[...SEED,...mine].sort((a,b)=>String(a.n||"").localeCompare(String(b.n||""),"es",{sensitivity:"base",numeric:true}));document.querySelectorAll(".cnt").forEach(e=>{const k=all.filter(x=>x.t===e.dataset.c).length;e.textContent=k.toLocaleString("es-ES")+(k===1?" ficha":" fichas")});const q=$("#q").value.toLowerCase(),t=modo;
  const cs=[...new Set([...all.filter(x=>x.t===modo).map(x=>x.c),...CATEGORIAS_DB.filter(x=>String(x.type||"negocio")===modo).map(x=>x.name)])].sort();const ch=$("#chips");ch.textContent="";
  [["", "Todas"],...cs.map(c=>[c,c])].forEach(([v,l])=>{const b=el("button","chip"+(cat===v?" on":""),(cat===v?"✓ ":"")+l);b.onclick=()=>{cat=v;render()};ch.append(b)});
  const g=$("#grid");g.textContent="";let n=0;
@@ -424,7 +424,7 @@ function render(){
   if(x.a)info.append(el("p","","📍 "+x.a));{let p=el("p","");p.append("📞 ");if(x.p){const t=x.p.split(/[;,\/]|ext/i)[0].replace(/[^\d+]/g,""),a=el("a","",x.p);a.href="tel:"+(/^\d{9}$/.test(t)?"+34"+t:t);p.append(a)}else if(!/playa|parque|natur|patrimonio|mirador|plaza|atracc/i.test(x.c)){p.append("sin teléfono registrado");p.className="mut"}else p=null;if(p)info.append(p)}if(x.e){const q=el("p","");q.append("✉️ ");const a=el("a","",x.e);a.href="mailto:"+x.e;q.append(a);info.append(q)}if(x.s)info.append(el("p","s","⭐ "+x.s));if(x.h)info.append(el("p","","🕒 "+x.h));if(x.d)info.append(el("p","",x.d));
   if(x.f)info.append(el("p","f","Fuente: "+x.f));const a=el("div","acts"),m=el("a","","Ver en Google Maps");m.href=x.m&&/^https?:\/\//.test(x.m)?x.m:map(x.n+(x.c&&!x.n.toLowerCase().includes(x.c.toLowerCase())?" "+x.c:""));m.target="_blank";m.rel="noopener";a.append(m);if(x.lat){const dd=el("a","","Cómo llegar");dd.href="https://www.google.com/maps/dir/?api=1&destination="+x.lat+","+x.lon;dd.target="_blank";dd.rel="noopener";a.append(dd)}
   if(x.w&&/^https?:\/\//.test(x.w)){const w=el("a","","Web");w.href=x.w;w.target="_blank";w.rel="noopener";a.append(w)}
-  if(!x.seed){const d=el("button","lnk","Eliminar");d.onclick=()=>{mine.splice(i-SEED.length,1);save();render()};a.append(d)}
+  if(!x.seed){const d=el("button","lnk","Eliminar");d.onclick=()=>{const idx=mine.findIndex(y=>y===x||(y.id&&x.id&&y.id===x.id));if(idx>=0)mine.splice(idx,1);save();render()};a.append(d)}
   info.append(a);c.append(info);g.append(c)});
  if(n>LIM){const b=el("button","btn s","Mostrar más ("+(n-LIM)+" restantes)");b.style.gridColumn="1/-1";b.onclick=()=>{LIM+=120;render()};g.append(b)}
  pintarVacio(n,all,q)}
