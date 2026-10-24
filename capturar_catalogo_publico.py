@@ -167,30 +167,86 @@ def _decode_csv(data: bytes) -> list[dict]:
     return [dict(row) for _, row in zip(range(MAX_ROWS_PER_RESOURCE), reader)]
 
 
+def _decode_spreadsheet(data: bytes, kind: str) -> list[dict]:
+    """Lee XLSX/XLS sin ejecutar macros; usa la primera fila como nombres de columna."""
+    import io
+
+    if kind == "xlsx":
+        from openpyxl import load_workbook
+        workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+        try:
+            sheet = workbook.active
+            iterator = sheet.iter_rows(values_only=True)
+            headers = next(iterator, ())
+            names = []
+            for index, value in enumerate(headers):
+                name = str(value).strip() if value is not None else ""
+                names.append(name or f"columna_{index + 1}")
+            rows = []
+            for values in iterator:
+                if not any(value is not None and str(value).strip() for value in values):
+                    continue
+                rows.append({names[i]: values[i] if i < len(values) else None for i in range(len(names))})
+                if len(rows) >= MAX_ROWS_PER_RESOURCE:
+                    break
+            return rows
+        finally:
+            workbook.close()
+
+    import xlrd
+    workbook = xlrd.open_workbook(file_contents=data, on_demand=True)
+    try:
+        sheet = workbook.sheet_by_index(0)
+        headers = sheet.row_values(0) if sheet.nrows else []
+        names = [str(value).strip() or f"columna_{i + 1}" for i, value in enumerate(headers)]
+        rows = []
+        for row_index in range(1, min(sheet.nrows, MAX_ROWS_PER_RESOURCE + 1)):
+            values = sheet.row_values(row_index)
+            if not any(str(value).strip() for value in values):
+                continue
+            rows.append({names[i]: values[i] if i < len(values) else None for i in range(len(names))})
+        return rows
+    finally:
+        workbook.release_resources()
+
+
 def _structured_resource_rows(resource: dict) -> tuple[list[dict], str]:
-    """Descarga CSV/JSON/GeoJSON pequeño; no ejecuta contenido ni procesa formatos binarios."""
+    """Descarga recursos pequeños con licencia abierta: CSV, JSON, GeoJSON, XLSX y XLS."""
     url = str(resource.get("url") or "").strip()
     fmt = str(resource.get("format") or "").casefold().strip()
     if not url.startswith("https://"):
         return [], "URL no HTTPS o ausente"
     if not license_allows_row_capture(str(resource.get("license") or "")):
         return [], "Licencia no reconocida como abierta; solo se conserva el metadato"
-    path_fmt = urllib.parse.urlparse(url).path.casefold().rsplit(".", 1)[-1] if "." in urllib.parse.urlparse(url).path else ""
+    parsed_path = urllib.parse.urlparse(url).path.casefold()
+    path_fmt = parsed_path.rsplit(".", 1)[-1] if "." in parsed_path else ""
     kind = fmt if fmt else path_fmt
     if kind in ("geojson", "geo json", "json", "application/json"):
         kind = "json" if kind != "geojson" else "geojson"
     elif kind in ("csv", "text/csv", "comma-separated values"):
         kind = "csv"
+    elif kind in ("xlsx", "excel 2007", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"):
+        kind = "xlsx"
+    elif kind in ("xls", "excel", "application/vnd.ms-excel"):
+        kind = "xls"
+    elif path_fmt in ("xlsx", "xls", "csv", "json", "geojson") and kind in ("", "unknown", "none"):
+        kind = path_fmt
     else:
-        return [], "Formato no compatible en esta fase"
+        # Algunos registros CKAN no declaran formato; en ese caso usamos la extensión real.
+        if path_fmt in ("xlsx", "xls", "csv", "json", "geojson"):
+            kind = path_fmt
+        else:
+            return [], "Formato no compatible en esta fase"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/csv, application/json, application/geo+json"})
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "text/csv, application/json, application/geo+json, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
         with urllib.request.urlopen(req, timeout=25) as response:
             raw = response.read(MAX_RESOURCE_BYTES + 1)
         if len(raw) > MAX_RESOURCE_BYTES:
             return [], "Recurso supera el límite de 5 MiB"
         if kind == "csv":
             rows = _decode_csv(raw)
+        elif kind in ("xlsx", "xls"):
+            rows = _decode_spreadsheet(raw, kind)
         else:
             payload = json.loads(raw.decode("utf-8-sig"))
             if isinstance(payload, dict) and payload.get("type") == "FeatureCollection":
@@ -486,7 +542,7 @@ def main() -> int:
         "google_maps_scraping": False,
         "limitations": [
             "La cobertura OSM depende de los datos cartografiados por la comunidad y no es exhaustiva.",
-            "Solo se capturan filas municipales en CSV/JSON/GeoJSON con licencia abierta reconocible; otros recursos quedan inventariados con motivo de omisión.",
+            "Se capturan filas municipales de CSV/JSON/GeoJSON/XLSX/XLS con licencia abierta reconocible, con límites de tamaño y filas; otros recursos quedan inventariados con motivo de omisión.",
             "No se infiere cierre por ausencia de un establecimiento en una fuente.",
             "Los resultados son candidatos a comparar, no fichas aprobadas ni publicaciones automáticas.",
         ],
