@@ -2,12 +2,12 @@
 
 Fecha de análisis: 2026-10-24. Entrada: expediente de candidatos de captura pública y catálogo publicado de referencia de 1.013 fichas.
 
-## Resultado
+## Resultado general
 
-Esta pasada refina las 214 propuestas iniciales, sin convertir ninguna automáticamente en ficha publicada.
+Se han refinado las 214 propuestas iniciales. Ninguna se ha publicado automáticamente.
 
-- **OpenRTA: 105** registros turísticos quedan pendientes de comprobar vigencia y duplicados. Los 105 tienen el indicador `ind_pub_open_rta=S`; 83 son viviendas de uso turístico y 22 viviendas turísticas de alojamiento rural. Ese indicador no demuestra que la actividad siga vigente hoy. No se trasladan direcciones particulares al expediente de revisión.
-- **Municipales: 32** instalaciones cotejadas nominalmente contra el catálogo existente: 9 duplicados probables que no deben darse de alta otra vez; 1 posible duplicado que requiere comprobación; 22 candidatas para confirmar con el Ayuntamiento, revisando nombre alternativo, ubicación y si la instalación sigue en servicio.
+- **OpenRTA: 105** registros turísticos pendientes de comprobar vigencia y duplicados. Los 105 tienen el indicador `ind_pub_open_rta=S`; 83 son viviendas de uso turístico y 22 viviendas turísticas de alojamiento rural. El indicador no demuestra que la actividad siga vigente hoy. Las direcciones particulares se mantienen fuera de los materiales públicos.
+- **Municipales: 32** registros revisados con una segunda comparación semántica contra el catálogo actual. El primer cotejo por similitud textual generaba falsos positivos (por ejemplo, asociar un skate park a un bar). La revisión refinada clasifica 10 como duplicados probables, 2 como posibles duplicados semánticos, 2 para revisar identidad, 1 para revisión manual y 17 como candidatas sin duplicado evidente. Estas 17 siguen sin estar confirmadas ni publicadas.
 - **OSM: 77** candidatos refinados: 34 lugares/actividades que pueden merecer confirmación, 14 elementos puntuales, viviendas particulares o nombres genéricos que se excluyen de altas de fichas con la evidencia actual, y 29 que siguen en revisión manual.
 
 ## Reglas aplicadas
@@ -16,15 +16,15 @@ Esta pasada refina las 214 propuestas iniciales, sin convertir ninguna automáti
 2. Una ficha en OpenRTA no se incorpora automáticamente: revisar vigencia, tipo de alojamiento, duplicado y pertinencia local.
 3. No exponer domicilios particulares de alojamientos.
 4. Elementos OSM puntuales (fuentes de agua, obras de arte, etc.) y nombres genéricos no se tratan como fichas de negocio por defecto.
-5. Las coincidencias municipales fuertes se etiquetan como duplicados probables; no se sobrescribe la ficha existente ni se enriquecen campos sin validación.
-6. Los candidatos y los descartes permanecen en el expediente de revisión para trazabilidad.
+5. La similitud de texto entre categorías no relacionadas no se acepta como evidencia de duplicado. Una coincidencia debe ser coherente en nombre, función y, cuando exista, ubicación.
+6. Los candidatos y descartes permanecen en el expediente de revisión para trazabilidad.
 
 ## Artefacto de revisión
 
-El Excel `validacion-segunda-pasada-xiclana.xlsx` contiene:
+El Excel de segunda pasada incluye:
 - resumen;
 - duplicados probables;
-- cotejo municipal;
+- cotejo municipal refinado;
 - OpenRTA y campos relevantes para revisar vigencia;
 - OSM filtrado;
 - todas las 214 candidatas con decisión provisional y siguiente paso.
@@ -35,4 +35,4 @@ Esta pasada es una clasificación conservadora, no una verificación individual 
 
 ## Siguiente lote de trabajo
 
-Priorizar las 22 instalaciones municipales candidatas, porque tienen una fuente municipal directa; después verificar las 34 candidatas OSM con etiquetas de lugar/actividad. Para OpenRTA, resolver vigencia y deduplicación antes de plantear altas, empezando por una comprobación por lote contra las fichas actuales y por fuentes oficiales accesibles.
+Priorizar las 17 instalaciones municipales sin duplicado evidente, validar los 2 posibles duplicados semánticos y revisar las 2 identidades ambiguas. Después verificar las 34 candidatas OSM con etiquetas de lugar/actividad. Para OpenRTA, resolver vigencia y deduplicación antes de plantear altas, empezando por una comprobación por lote contra las fichas actuales y por fuentes oficiales accesibles.
