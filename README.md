@@ -12,3 +12,12 @@ Directorio web de ocio y negocios de Chiclana de la Frontera (Cádiz).
 
 Fuentes: © colaboradores de OpenStreetMap (licencia ODbL) y Ayuntamiento de Chiclana, Portal de Datos Abiertos (licencia ODC-By).
 Guía paso a paso para el propietario: ver `LEEME.md`.
+
+
+## V3 de revisión
+
+- Web pública de revisión: `https://mickaelwhitecap.github.io/Xiclana-de-Ocio-y-de-Negocio-V1/v3/`
+- Administración de prueba: `https://mickaelwhitecap.github.io/Xiclana-de-Ocio-y-de-Negocio-V1/v3/admin.html`
+- `v3/manuales.json`: ocho instalaciones deportivas municipales confirmadas incorporadas sin tocar el catálogo de producción.
+- `v3/informe-investigacion.json`: resumen de la segunda pasada de verificación.
+- La Administración V3 guarda borradores solo en el navegador; no escribe en Supabase.
