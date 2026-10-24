@@ -171,34 +171,51 @@ def _asegurar_ids(lista, fuente):
 
 
 def principal():
-    # V3 reutiliza exactamente el catálogo que acaba de generar la versión base.
-    # Así evita una segunda descarga de OSM y conserva las fichas y fuentes actuales.
+    # V3 parte del catálogo ya generado por la web base: no reconstruye ni sustituye
+    # las 1.013 fichas existentes y evita una segunda descarga de OpenStreetMap.
     base = _leer("../data.json", None)
     if not base or not isinstance(base.get("items"), list):
         sys.exit("No existe el catálogo base ../data.json; se cancela V3 para no publicar un catálogo incompleto.")
     manuales = _asegurar_ids(_leer("manuales.json", []), "manual")
-    base_items = [dict(x) for x in base["items"]]
-    todo = fusionar(manuales, base_items)
+    todo = [dict(x) for x in base["items"]]
+    base_ids = {str(x.get("id", "")) for x in todo if x.get("id")}
 
-    # Conservar los IDs originales de producción para que las correcciones existentes
-    # sigan asociadas a la misma ficha; las nuevas instalaciones conservan ID manual propio.
     def similitud(a, b):
         ka, kb = _tokens(a.get("n", "")), _tokens(b.get("n", ""))
         return len(ka & kb) / len(ka | kb) if ka and kb else 0
-    for item in todo:
-        candidatas = [b for b in base_items
-                      if b.get("t") == item.get("t") and similitud(item, b) >= 0.7]
-        if len(candidatas) == 1 and candidatas[0].get("id"):
-            item["id"] = candidatas[0]["id"]
 
-    todo.sort(key=lambda x: x["n"].lower())
+    añadidas = 0
+    integradas = 0
+    ambiguas = []
+    for propuesta in manuales:
+        # Las fichas manuales originales ya están dentro de data.json: no volver a fusionarlas.
+        if str(propuesta.get("id", "")) in base_ids:
+            continue
+        candidatas = [b for b in todo
+                      if b.get("t") == propuesta.get("t") and similitud(propuesta, b) >= 0.7]
+        if len(candidatas) == 1:
+            # Una coincidencia clara se integra en la ficha existente, sin crear duplicado.
+            destino = candidatas[0]
+            for campo in CAMPOS:
+                if not destino.get(campo) and propuesta.get(campo):
+                    destino[campo] = propuesta[campo]
+            integradas += 1
+        elif len(candidatas) > 1:
+            ambiguas.append(propuesta.get("n", "Ficha sin nombre"))
+        else:
+            todo.append(propuesta)
+            base_ids.add(str(propuesta.get("id", "")))
+            añadidas += 1
+
+    todo.sort(key=lambda x: x.get("n", "").lower())
     fecha = base.get("actualizado") or datetime.date.today().isoformat()
     destacados = base.get("destacados", _leer("destacados.json", {}))
     salida = {"actualizado": fecha, "items": todo, "destacados": destacados}
     (RAIZ / "data.json").write_text(json.dumps(salida, ensure_ascii=False), encoding="utf-8")
-    nuevos = sum(1 for x in todo if str(x.get("id", "")).startswith("manual:") and
-                 not any(b.get("id") == x.get("id") for b in base_items))
-    print(f"V3: {len(todo)} fichas totales; {nuevos} fichas manuales nuevas; catálogo base: {len(base_items)}.")
+    print(f"V3: {len(todo)} fichas; catálogo base {len(base['items'])}; "
+          f"{añadidas} nuevas, {integradas} integradas y {len(ambiguas)} ambiguas sin alta automática.")
+    if ambiguas:
+        print("::warning::Candidatas no dadas de alta por posible duplicado: " + "; ".join(ambiguas))
 
 if __name__ == "__main__":
     principal()
