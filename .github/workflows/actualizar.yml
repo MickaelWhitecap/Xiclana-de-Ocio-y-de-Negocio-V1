@@ -29,11 +29,15 @@ jobs:
           python-version: "3.12"
       - name: Descargar datos y generar data.json
         run: python actualizar.py
+      - name: Generar catálogo V3 con instalaciones verificadas
+        run: python v3/actualizar.py
       - name: Preparar carpeta del sitio
         run: |
-          mkdir _site
+          mkdir -p _site/v3
           cp index.html data.json admin.html exportar-fichas.html supabase-config.js _site/
           cp fondo.jpg fondo.txt _site/ 2>/dev/null || true
+          cp v3/index.html v3/data.json v3/admin.html v3/exportar-fichas.html v3/supabase-config.js v3/informe-investigacion.json _site/v3/
+          cp v3/fondo.jpg v3/fondo.txt _site/v3/ 2>/dev/null || true
       - uses: actions/configure-pages@v5
         with:
           enablement: true
