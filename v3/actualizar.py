@@ -171,30 +171,34 @@ def _asegurar_ids(lista, fuente):
 
 
 def principal():
+    # V3 reutiliza exactamente el catálogo que acaba de generar la versión base.
+    # Así evita una segunda descarga de OSM y conserva las fichas y fuentes actuales.
+    base = _leer("../data.json", None)
+    if not base or not isinstance(base.get("items"), list):
+        sys.exit("No existe el catálogo base ../data.json; se cancela V3 para no publicar un catálogo incompleto.")
     manuales = _asegurar_ids(_leer("manuales.json", []), "manual")
-    oficiales = _asegurar_ids(_leer("oficiales.json", []), "oficial")
-    turismo = _asegurar_ids(_leer("turismo.json", []), "turismo")
-    destacados = _leer("destacados.json", {})
-    elementos = descargar()
-    osm = convertir(elementos) if elementos else []
-    if len(osm) >= 30:                      # descarga buena: se guarda copia para futuros fallos
-        fecha = datetime.date.today().isoformat()
-        copia = RAIZ / "datos" / "osm.json"
-        copia.parent.mkdir(exist_ok=True)
-        copia.write_text(json.dumps({"fecha": fecha, "items": osm}, ensure_ascii=False), encoding="utf-8")
-    else:                                   # OpenStreetMap no respondió: se usa la última copia buena
-        previa = _leer("datos/osm.json", None)
-        if previa:
-            osm, fecha = previa["items"], previa["fecha"]
-            print(f"::warning::OpenStreetMap no respondió; se usa la copia del {fecha}")
-        else:
-            # No publicar un directorio parcial: conservar la versión anterior si OSM falla.
-            sys.exit("OpenStreetMap no respondió y no existe una copia local; se cancela la publicación para no perder categorías ni fichas.")
-    todo = fusionar(manuales, oficiales, turismo, osm)
+    base_items = [dict(x) for x in base["items"]]
+    todo = fusionar(manuales, base_items)
+
+    # Conservar los IDs originales de producción para que las correcciones existentes
+    # sigan asociadas a la misma ficha; las nuevas instalaciones conservan ID manual propio.
+    def similitud(a, b):
+        ka, kb = _tokens(a.get("n", "")), _tokens(b.get("n", ""))
+        return len(ka & kb) / len(ka | kb) if ka and kb else 0
+    for item in todo:
+        candidatas = [b for b in base_items
+                      if b.get("t") == item.get("t") and similitud(item, b) >= 0.7]
+        if len(candidatas) == 1 and candidatas[0].get("id"):
+            item["id"] = candidatas[0]["id"]
+
     todo.sort(key=lambda x: x["n"].lower())
-    (RAIZ / "data.json").write_text(json.dumps({"actualizado": fecha, "items": todo, "destacados": destacados},
-                                               ensure_ascii=False), encoding="utf-8")
-    print(len(todo), "fichas guardadas", "(sin datos de OpenStreetMap)" if not osm else "(datos de OpenStreetMap del " + fecha + ")")
+    fecha = base.get("actualizado") or datetime.date.today().isoformat()
+    destacados = base.get("destacados", _leer("destacados.json", {}))
+    salida = {"actualizado": fecha, "items": todo, "destacados": destacados}
+    (RAIZ / "data.json").write_text(json.dumps(salida, ensure_ascii=False), encoding="utf-8")
+    nuevos = sum(1 for x in todo if str(x.get("id", "")).startswith("manual:") and
+                 not any(b.get("id") == x.get("id") for b in base_items))
+    print(f"V3: {len(todo)} fichas totales; {nuevos} fichas manuales nuevas; catálogo base: {len(base_items)}.")
 
 if __name__ == "__main__":
     principal()
