@@ -1,38 +1,45 @@
 # Primer cruce del catálogo público con las 1.013 fichas existentes
 
 **Fecha de análisis:** 24 de octubre de 2026  
-**Alcance:** solo lectura; no se modificaron la web pública, Supabase ni el catálogo de producción.
+**Alcance:** solo lectura y propuesta de trabajo. No se modificaron la web pública, Supabase ni el catálogo de producción.
 
 ## Fuentes comparadas
 
-- Catálogo existente: 1.013 fichas, recuperadas del artefacto de GitHub Pages de la ejecución del 23/10/2026.
-- Captura pública unificada: 9.440 registros brutos.
-- Candidatos comparables extraídos: 1.779 (1.571 de OpenStreetMap, 168 de OpenRTA y 40 filas de conjuntos municipales seleccionados).
+- Catálogo existente: 1.013 fichas, recuperadas del artefacto de GitHub Pages.
+- Captura pública unificada: 9.440 registros brutos; no representan establecimientos únicos.
+- Candidatos iniciales comparables: 1.779 (1.571 OSM, 168 OpenRTA y 40 filas municipales seleccionadas).
 
-No se cuentan las 6.204 filas del callejero como establecimientos. También se excluyen eventos y reservas del primer cruce de posibles fichas.
+## Primer resultado del comparador
 
-## Resultados preliminares
-
-| Estado de comparación | OSM | OpenRTA | Municipal | Total |
+| Estado inicial | OSM | OpenRTA | Municipal | Total |
 |---|---:|---:|---:|---:|
 | Coincidencia probable por nombre y ubicación | 836 | 0 | 0 | 836 |
 | Nombre exacto; ubicación pendiente | 32 | 0 | 5 | 37 |
 | Posible variante de nombre | 20 | 0 | 2 | 22 |
 | Ficha cercana; nombre distinto | 73 | 19 | 0 | 92 |
-| Nombre duplicado; ambiguo | 87 | 0 | 0 | 87 |
+| Nombre repetido; ambiguo | 87 | 0 | 0 | 87 |
 | Varias fichas cercanas; ambiguo | 125 | 44 | 0 | 169 |
 | Sin coincidencia automática | 398 | 105 | 33 | 536 |
 | **Total** | **1.571** | **168** | **40** | **1.779** |
 
-## Interpretación y control de calidad
+## Segundo paso: triage conservador
 
-- Una coincidencia probable no autoriza por sí sola una fusión; debe verificarse que se trata del mismo establecimiento.
-- «Sin coincidencia automática» no significa ficha nueva confirmada. Puede deberse a variantes de nombre, coordenadas ausentes o diferencias entre nombre comercial y denominación oficial.
-- Ejemplo de coincidencia: «La Rana Verde» coincide con una ficha existente a 0 m; debe conservarse la ficha actual y no añadir un duplicado.
-- Ejemplo de falso candidato: el elemento OSM llamado «public» tiene la etiqueta `amenity=toilets`; es un nombre genérico y no debe incorporarse como ficha con ese título. Se conserva solo como registro de origen para revisión/filtrado.
-- OpenRTA publica parte de sus coordenadas en ETRS89 / UTM 30N (EPSG:25830); la comparación transforma esas coordenadas a latitud/longitud cuando la biblioteca de proyección está disponible.
-- Los candidatos no se incorporan automáticamente. Toda coincidencia y toda posible novedad requiere revisión.
+El análisis de las etiquetas originales de OpenStreetMap detecta elementos que no deben tratarse como fichas de negocio, especialmente paradas de transporte público. Tras aplicar reglas conservadoras, el libro de trabajo propone:
+
+- **900** coincidencias probables o coincidencias de ubicación exacta que no deben generar duplicados.
+- **351** registros excluidos del flujo de altas por ser paradas/transporte público o por tener un nombre genérico.
+- **214** propuestas de alta para contrastar: 105 registros turísticos oficiales, 32 instalaciones municipales y 77 entidades OSM con etiquetas de lugar/actividad y sin coincidencia automática.
+- **314** casos que requieren revisión adicional por ambigüedad o falta de evidencia suficiente.
+
+Estas categorías son recomendaciones de triage, no una certificación de que un negocio esté activo. La coincidencia por nombre y ubicación no autoriza a sobrescribir la ficha existente; la ausencia de coincidencia no demuestra que la ficha sea nueva.
+
+## Casos de control
+
+- «La Rana Verde» coincide con una ficha existente a 0 m; no se debe añadir otra.
+- El elemento OSM «public» con `amenity=toilets` es un aseo público, no una ficha comercial con ese nombre.
+- Los registros de OpenRTA pueden representar alojamientos particulares; hay que comprobar actividad, duplicidad y pertinencia para el directorio antes de darlos de alta.
+- Los datos de OSM se usan bajo ODbL 1.0, con sus obligaciones de atribución y bases de datos derivadas; los registros OpenRTA, bajo CC BY 4.0 con atribución a la Junta de Andalucía. Los conjuntos municipales solo se capturan cuando su licencia está identificada como reutilizable.
 
 ## Siguiente paso
 
-La hoja de revisión separa coincidencias probables, casos ambiguos, candidatos sin coincidencia automática y nombres genéricos. Revisar esos grupos permite formar una propuesta de catálogo maestro sin alterar las 1.013 fichas existentes. No se publica ni se escribe en Supabase hasta que exista una lista de altas y fusiones revisada.
+El archivo de revisión separa coincidencias, exclusiones, propuestas y casos manuales. Las altas están **preparadas como propuestas**, pero no se han escrito en el catálogo público ni en Supabase. La incorporación definitiva requiere revisar las propuestas y aplicar los cambios de forma controlada.
