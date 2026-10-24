@@ -35,289 +35,336 @@
       "name": "Estadio de Atletismo Huerta Mata",
       "complex": "Huerta Mata",
       "proposed_action": "subinstalacion_con_posible_ficha_propia",
-      "rationale": "La instalación tiene identidad pública y uso especializado; no duplicar si ya figura como Estadio Municipal de Atletismo.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El catálogo tiene la pista de atletismo con denominación abreviada; es la misma instalación según la fuente municipal.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Estadio Municipal de Atletismo"
     },
     {
       "name": "Pádel Center Europa 2015",
       "complex": "Huerta Mata",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Instalación con pistas y contacto propios; dirección dentro de Huerta Mata.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia directa; dirección en Huerta Mata.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Padel Center \"Europa 2015\""
     },
     {
       "name": "Pabellón Ciudad de Chiclana",
       "complex": "Huerta Mata / entorno próximo",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Pabellón municipal identificable por separado; confirmar ubicación y denominación actuales.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia directa; denominación equivalente.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Pabellón Polideportivo \"Ciudad de Chiclana\""
     },
     {
       "name": "Polideportivo Santa Ana",
       "complex": "Complejo Santa Ana",
       "proposed_action": "ficha_de_complejo",
-      "rationale": "Debe cubrir las pistas y pabellones internos salvo servicios con identidad propia.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia directa.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Polideportivo Municipal \"Santa Ana\""
     },
     {
       "name": "Pabellón Deportivo Huerta del Rosario",
       "complex": "Huerta del Rosario",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Instalación cubierta con denominación y dirección propias.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia directa.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Pabellón Polideportivo \"Huerta del Rosario\""
     },
     {
       "name": "Estadio de Fútbol Huerta Mata",
       "complex": "Huerta Mata",
       "proposed_action": "subinstalacion_con_posible_ficha_propia",
-      "rationale": "Ficha propia si se identifica como campo municipal de fútbol Huerta Mata; evitar duplicar alias.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "La ficha del complejo ya existe; no crear otra hasta verificar que el campo se consulta como destino independiente.",
+      "catalog_match": "covered_by_complex",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Ciudad Deportiva Municipal de Huerta Mata"
     },
     {
       "name": "Complejo Deportivo El Fontanal",
       "complex": "El Fontanal",
       "proposed_action": "ficha_de_complejo",
-      "rationale": "Ficha de conjunto para el recinto y sus espacios.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia directa.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Complejo Deportivo El Fontanal"
     },
     {
       "name": "Pabellón Deportivo El Fontanal",
       "complex": "El Fontanal",
       "proposed_action": "integrar_en_complejo_salvo_busqueda_independiente",
-      "rationale": "El complejo municipal ya describe el pabellón; ficha propia solo si el catálogo lo trata como destino independiente.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El pabellón aparece como parte del complejo municipal; evitar duplicado por ahora.",
+      "catalog_match": "covered_by_complex",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Complejo Deportivo El Fontanal"
     },
     {
       "name": "Campo de Fútbol El Fontanal",
       "complex": "El Fontanal",
       "proposed_action": "integrar_en_complejo_salvo_busqueda_independiente",
-      "rationale": "Subinstalación del complejo; evitar duplicado si la ficha del complejo la describe.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El campo figura como unidad interna del complejo; no se justifica ficha separada sin necesidad de búsqueda independiente.",
+      "catalog_match": "covered_by_complex",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Complejo Deportivo El Fontanal"
     },
     {
       "name": "Velódromo José Manuel Moreno Periñán",
       "complex": "El Fontanal",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Equipamiento especializado con nombre propio y búsquedas diferenciadas.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia probable de la instalación por nombre alternativo y ubicación en El Fontanal; conservar una sola ficha.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Velódromo - Estadio del Chiclana Industrial"
     },
     {
       "name": "Circuito BTT El Fontanal",
       "complex": "El Fontanal",
       "proposed_action": "integrar_en_complejo_salvo_busqueda_independiente",
-      "rationale": "Subinstalación; ficha propia solo si tiene acceso/actividad pública diferenciada.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Espacio interno del complejo; no crear ficha independiente sin evidencia de acceso o servicio diferenciado.",
+      "catalog_match": "covered_by_complex",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Complejo Deportivo El Fontanal"
     },
     {
       "name": "Campo de Fútbol El Trovador",
       "complex": "El Trovador",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Campo municipal con nombre propio.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El catálogo solo muestra Colegio El Trovador, que no equivale al campo. Confirmar vigencia y ubicación.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Campo de Fútbol Fernando Quiñones",
       "complex": "Fernando Quiñones",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Campo municipal con nombre propio.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El instituto/fundación Fernando Quiñones no equivalen al campo. Confirmar vigencia y ubicación.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Campo de Fútbol Isabel la Católica",
       "complex": "Isabel la Católica",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Campo municipal con nombre propio.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El colegio Isabel La Católica no equivale al campo. Confirmar vigencia y ubicación.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Centro Náutico Las Albinas",
       "complex": "Las Albinas",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Instalación especializada, identidad propia.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "No se ha encontrado una ficha equivalente por nombre; confirmar actividad y denominación actuales.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Circuito de Minimotos Las Albinas",
       "complex": "Las Albinas",
       "proposed_action": "ficha_propia_recomendable_si_sigue_activo",
-      "rationale": "Confirmar vigencia actual antes de alta.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa; el inventario municipal consultado es histórico. Confirmar que siga activo.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Pista Polideportiva La Soledad",
       "complex": "La Soledad",
       "proposed_action": "ficha_propia_si_destino_publico_identificable",
-      "rationale": "Confirmar acceso público, estado y denominación actual.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa. Confirmar ubicación, acceso público y estado.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Campo de Tiro con Arco",
       "complex": "Por confirmar",
       "proposed_action": "ficha_propia_si_sigue_activo",
-      "rationale": "Ubicación y estado actual requieren confirmación.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Coincidencia por denominación ampliada; no crear duplicado.",
+      "catalog_match": "already_listed",
+      "current_status": "confirmed_in_catalog_snapshot_2026-10-23",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Campo Municipal de Tiro con Arco Novo Sancti Petri"
     },
     {
       "name": "Campo de Béisbol",
       "complex": "Por confirmar",
       "proposed_action": "ficha_propia_si_sigue_activo",
-      "rationale": "Ubicación y estado actual requieren confirmación.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa. Confirmar que exista actualmente y sea de uso colectivo.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Pista Polideportiva Recreo San Pedro",
       "complex": "Recreo San Pedro",
       "proposed_action": "ficha_propia_si_destino_publico_identificable",
-      "rationale": "Confirmar estado y acceso.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa. Confirmar ubicación, acceso y estado.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Skate Park Las Albinas",
       "complex": "Las Albinas",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Destino recreativo reconocible y buscable.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "No hay ficha deportiva equivalente; la ficha del Colegio Las Albinas no corresponde al skatepark.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Skate Park El Arenal",
       "complex": "El Arenal",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Destino recreativo reconocible y buscable.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa; confirmar ubicación y vigencia.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Skate Park Parque Santa Ana",
       "complex": "Parque Santa Ana",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "No confundir con el complejo Polideportivo Santa Ana.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Existe ficha del parque, pero no consta que describa el skatepark. Mejor ampliar esa ficha si el equipamiento sigue activo, en vez de duplicar automáticamente.",
+      "catalog_match": "needs_merge_or_manual_review",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Parque Santa Ana"
     },
     {
       "name": "Circuito de Salud Playa La Barrosa",
       "complex": "Playa de La Barrosa",
       "proposed_action": "integrar_en_ficha_de_playa_o_paseo_salvo_destino_independiente",
-      "rationale": "Probablemente se entiende mejor como servicio del entorno si no tiene ficha/ubicación propia.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Candidato a integrar en la ficha de la playa/paseo si el circuito no tiene identidad o acceso separado.",
+      "catalog_match": "needs_merge_or_manual_review",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Playa de La Barrosa"
     },
     {
       "name": "Campo de Fútbol Novo Sancti Petri 1",
       "complex": "Novo Sancti Petri",
       "proposed_action": "ficha_propia_si_uso_publico_independiente",
-      "rationale": "Confirmar nombre actual, acceso y posible gestión privada.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El catálogo ya tiene un campo con ese nombre, pero no permite saber si corresponde al número 1 o si cubre ambos campos. No crear otra ficha hasta aclararlo.",
+      "catalog_match": "needs_merge_or_manual_review",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Campo Municipal de Fútbol Novo Sancti Petri"
     },
     {
       "name": "Campo de Fútbol Novo Sancti Petri 2",
       "complex": "Novo Sancti Petri",
       "proposed_action": "ficha_propia_si_uso_publico_independiente",
-      "rationale": "Confirmar nombre actual, acceso y posible gestión privada.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "La ficha existente de Novo Sancti Petri podría ser el campo 1 o un nombre genérico del recinto; confirmar si el campo 2 es distinto y accesible.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Campo Municipal de Fútbol",
       "complex": "Por confirmar",
       "proposed_action": "ficha_propia_recomendable",
-      "rationale": "Buscar alias como Campo Municipal de Deportes o Municipal de Deportes de Chiclana.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "El nombre es ambiguo y el catálogo contiene un campo municipal específico en Novo Sancti Petri. Confirmar si se trata de otra instalación.",
+      "catalog_match": "needs_merge_or_manual_review",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": "Campo Municipal de Fútbol Novo Sancti Petri"
     },
     {
       "name": "Parque de Calistenia",
       "complex": "Por confirmar",
       "proposed_action": "integrar_en_parque_o_ficha_propia_si_busqueda_relevante",
-      "rationale": "Confirmar ubicación actual; no confundir con parques de calistenia posteriores.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "No se identifica con seguridad la ubicación ni la ficha de parque que lo contiene; localizar antes de decidir alta.",
+      "catalog_match": "needs_merge_or_manual_review",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Circuito de Motocross Manolo Clemente",
       "complex": "Por confirmar",
       "proposed_action": "ficha_propia_si_sigue_activo",
-      "rationale": "Confirmar vigencia, ubicación y condiciones de uso.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa; confirmar vigencia y condiciones de uso.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Campo de Fútbol 7 La Loma de Sancti Petri",
       "complex": "La Loma de Sancti Petri",
       "proposed_action": "ficha_propia_si_uso_publico_independiente",
-      "rationale": "Confirmar gestión y acceso; no asumir que es municipal por aparecer en inventario histórico.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa. Confirmar si es una instalación pública, privada o integrada en un complejo turístico.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Pista Deportiva Cerromolino",
       "complex": "Cerromolino",
       "proposed_action": "ficha_propia_si_destino_publico_identificable",
-      "rationale": "Confirmar vigencia y acceso público.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Sin coincidencia directa; confirmar ubicación, estado y acceso público.",
+      "catalog_match": "candidate_new_needs_current_check",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     },
     {
       "name": "Zonas Deportivas Playa La Barrosa",
       "complex": "Playa de La Barrosa",
       "proposed_action": "integrar_en_ficha_de_playa_o_zona_deportiva",
-      "rationale": "Denominación genérica; no crear una ficha sin localizar espacios concretos.",
-      "catalog_match": "not_checked",
-      "current_status": "needs_current_source_check",
-      "public_catalog_change": false
+      "rationale": "Denominación genérica sin una ubicación única; no crear ficha sin identificar las instalaciones concretas.",
+      "catalog_match": "do_not_create_generic_entry",
+      "current_status": "requires_current_source_confirmation",
+      "public_catalog_change": false,
+      "matched_catalog_name": null
     }
-  ]
+  ],
+  "catalog_snapshot": {
+    "date": "2026-10-23",
+    "source": "GitHub Pages artifact from successful main workflow run 39934313933",
+    "items": 1013
+  },
+  "summary": {
+    "checked_against_catalog_items": 1013,
+    "already_listed": 8,
+    "covered_by_complex": 4,
+    "needs_merge_or_manual_review": 5,
+    "candidate_new_needs_current_check": 14,
+    "do_not_create_generic_entry": 1,
+    "public_catalog_changed": false,
+    "supabase_changed": false
+  }
 }
