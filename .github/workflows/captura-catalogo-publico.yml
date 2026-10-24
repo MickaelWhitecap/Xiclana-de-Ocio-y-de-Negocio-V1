@@ -18,6 +18,11 @@ on:
 permissions:
   contents: write
 
+# Evita que dos capturas intenten guardar el mismo JSON simultáneamente.
+concurrency:
+  group: captura-catalogo-publico-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   catalogo-municipal:
     runs-on: ubuntu-latest
