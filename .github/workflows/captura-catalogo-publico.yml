@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Instalar lectores de hojas de cálculo
+        run: python -m pip install --disable-pip-version-check openpyxl xlrd
       - name: Validar sintaxis y pruebas unitarias
         run: |
           python -m py_compile capturar_catalogo_publico.py
