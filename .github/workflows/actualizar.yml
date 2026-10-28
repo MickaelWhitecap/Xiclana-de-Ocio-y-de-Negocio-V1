@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html data.json admin.html exportar-fichas.html supabase-config.js _site/
-          cp fondo.jpg fondo.txt _site/ 2>/dev/null || true
+          cp fondo.jpg fondo.txt espacio-1-flamenca.jpg _site/ 2>/dev/null || true
       - uses: actions/configure-pages@v5
         with:
           enablement: true
